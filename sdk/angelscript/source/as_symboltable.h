@@ -51,20 +51,6 @@
 
 BEGIN_AS_NAMESPACE
 
-
-
-
-
-// Interface to avoid nested templates which is not well supported by older compilers, e.g. MSVC6
-struct asIFilter
-{
-	virtual bool operator()(const void*) const = 0;
-	virtual ~asIFilter() {};
-};
-
-
-
-
 // forward declaration
 template<class T>
 class asCSymbolTable;
@@ -110,13 +96,15 @@ public:
 
 	asCSymbolTable(asUINT initialCapacity = 0);
 
-	int      GetFirstIndex(const asSNameSpace *ns, const asCString &name, const asIFilter &comparator) const;
+	template<typename F>
+	int      GetFirstIndex(const asSNameSpace *ns, const asCString &name, F &&comparator) const;
 	int      GetFirstIndex(const asSNameSpace *ns, const asCString &name) const;
 	int      GetLastIndex() const;
 
 	int      GetIndex(const T*) const;
 
-	T*       GetFirst(const asSNameSpace *ns, const asCString &name, const asIFilter &comparator) const;
+	template<typename F>
+	T*       GetFirst(const asSNameSpace *ns, const asCString &name, F &&comparator) const;
 	T*       GetFirst(const asSNameSpace *ns, const asCString &name);
 	const T* GetFirst(const asSNameSpace *ns, const asCString &name) const;
 	T*       Get(asUINT index);
@@ -182,10 +170,11 @@ asCSymbolTable<T>::asCSymbolTable(asUINT initialCapacity) : m_entries(initialCap
 
 
 template<class T>
+template<typename F>
 int asCSymbolTable<T>::GetFirstIndex(
         const asSNameSpace *ns,
         const asCString &name,
-        const asIFilter &filter) const
+        F &&filter) const
 {
 	asSNameSpaceNamePair key(ns, name);
 
@@ -223,9 +212,10 @@ const asCArray<asUINT> &asCSymbolTable<T>::GetIndexes(const asSNameSpace *ns, co
 
 
 template<class T>
-T* asCSymbolTable<T>::GetFirst(const asSNameSpace *ns, const asCString &name, const asIFilter &comp) const
+template<typename F>
+T* asCSymbolTable<T>::GetFirst(const asSNameSpace *ns, const asCString &name, F &&comp) const
 {
-	int idx = GetFirstIndex(ns, name, comp);
+	int idx = GetFirstIndex(ns, name, static_cast<F&&>(comp));
 	if (idx != -1) return m_entries[idx];
 	return 0;
 }

@@ -1057,7 +1057,7 @@ int asCModule::GetGlobalVarIndexByDecl(const char *decl) const
 	// Search global variables for a match
 	while( nameSpace )
 	{
-		int id = m_scriptGlobals.GetFirstIndex(nameSpace, declName, asCCompGlobPropType(dt));
+		int id = m_scriptGlobals.GetFirstIndex(nameSpace, declName, [&dt]( const asCGlobalProperty* prop ) { return prop->type == dt; });
 		if( id != -1 )
 			return id;
 

@@ -2869,7 +2869,7 @@ int asCScriptEngine::GetGlobalPropertyIndexByDecl(const char *decl) const
 	// Search for a match
 	while( ns )
 	{
-		int id = registeredGlobalProps.GetFirstIndex(ns, name, asCCompGlobPropType(dt));
+		int id = registeredGlobalProps.GetFirstIndex(ns, name, [&dt]( const asCGlobalProperty* prop ) { return prop->type == dt; });
 		if( id >= 0 )
 			return id;
 

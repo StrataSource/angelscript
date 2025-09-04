@@ -60,24 +60,6 @@ void asCSymbolTable<sGlobalVariableDescription>::GetKey(const sGlobalVariableDes
 	key = asSNameSpaceNamePair(ns, name);
 }
 
-// Comparator for exact variable search
-class asCCompGlobVarType : public asIFilter
-{
-public:
-	const asCDataType &m_type;
-	asCCompGlobVarType(const asCDataType &type) : m_type(type) {}
-
-	bool operator()(const void *p) const
-	{
-		const sGlobalVariableDescription* desc = reinterpret_cast<const sGlobalVariableDescription*>(p);
-		return desc->datatype == m_type;
-	}
-
-private:
-	// The assignment operator is required for MSVC9, otherwise it will complain that it is not possible to auto generate the operator
-	asCCompGlobVarType &operator=(const asCCompGlobVarType &) {return *this;}
-};
-
 #endif
 
 asCBuilder::asCBuilder(asCScriptEngine *_engine, asCModule *_module)
@@ -4831,7 +4813,7 @@ int asCBuilder::RegisterEnum(asCScriptNode *node, asCScriptCode *file, asSNameSp
 			else
 			{
 				// Check for name conflict errors with other values in the enum
-				if( globVariables.GetFirst(ns, name, asCCompGlobVarType(type)) )
+				if( globVariables.GetFirst(ns, name, [&type]( const sGlobalVariableDescription* desc ) { return desc->datatype == type; }) )
 				{
 					asCString str;
 					str.Format(TXT_NAME_CONFLICT_s_ALREADY_USED, name.AddressOf());

@@ -808,7 +808,7 @@ public:
 	virtual int SetTranslateAppExceptionCallback(const asSFuncPtr &callback, void *param, int callConv) = 0;
 
 protected:
-	virtual ~asIScriptEngine() {}
+	virtual ~asIScriptEngine() = default;
 };
 
 class asIStringFactory
@@ -819,13 +819,13 @@ public:
 	virtual int         GetRawStringData(const void *str, char *data, asUINT *length) const = 0;
 
 	// The destructor doesn't have to be protected as the string factory is not necessarily reference counted
-	virtual ~asIStringFactory() {}
+	virtual ~asIStringFactory() = default;
 };
 
 class asIThreadManager
 {
 protected:
-	virtual ~asIThreadManager() {}
+	virtual ~asIThreadManager() = default;
 };
 
 class asIScriptModule
@@ -896,7 +896,7 @@ public:
 	virtual void *GetUserData(asPWORD type = 0) const = 0;
 
 protected:
-	virtual ~asIScriptModule() {}
+	virtual ~asIScriptModule() = default;
 };
 
 class asIScriptContext
@@ -994,7 +994,7 @@ public:
 	virtual int GetArgOnStack(asUINT stackLevel, asUINT arg, int* typeId, asUINT *flags, void** address) = 0;
 
 protected:
-	virtual ~asIScriptContext() {}
+	virtual ~asIScriptContext() = default;
 };
 
 class asIScriptGeneric
@@ -1035,7 +1035,7 @@ public:
 	virtual void   *GetAddressOfReturnLocation() = 0;
 
 protected:
-	virtual ~asIScriptGeneric() {}
+	virtual ~asIScriptGeneric() = default;
 };
 
 class asIScriptObject
@@ -1065,7 +1065,7 @@ public:
 	virtual void *GetUserData(asPWORD type = 0) const = 0;
 
 protected:
-	virtual ~asIScriptObject() {}
+	virtual ~asIScriptObject() = default;
 };
 
 class asITypeInfo
@@ -1142,7 +1142,7 @@ public:
 	virtual void *GetUserData(asPWORD type = 0) const = 0;
 
 protected:
-	virtual ~asITypeInfo() {}
+	virtual ~asITypeInfo() = default;
 };
 
 class asIScriptFunction
@@ -1222,7 +1222,7 @@ public:
 	virtual void            *GetUserData(asPWORD type = 0) const = 0;
 
 protected:
-	virtual ~asIScriptFunction() {};
+	virtual ~asIScriptFunction() = default;
 };
 
 class asIBinaryStream
@@ -1232,7 +1232,7 @@ public:
 	virtual int Write(const void *ptr, asUINT size) = 0;
 
 public:
-	virtual ~asIBinaryStream() {}
+	virtual ~asIBinaryStream() = default;
 };
 
 class asILockableSharedBool
@@ -1251,7 +1251,7 @@ public:
 	virtual void Unlock() const = 0;
 
 protected:
-	virtual ~asILockableSharedBool() {}
+	virtual ~asILockableSharedBool() = default;
 };
 
 //-----------------------------------------------------------------
@@ -1436,7 +1436,7 @@ struct asSVMRegisters
 class asIJITCompilerAbstract 
 { 
 public: 
-	virtual ~asIJITCompilerAbstract() {}
+	virtual ~asIJITCompilerAbstract() = default;
 };
 
 // JIT Compiler interface version 1
@@ -1446,7 +1446,7 @@ public:
 	virtual int  CompileFunction(asIScriptFunction *function, asJITFunction *output) = 0;
 	virtual void ReleaseJITFunction(asJITFunction func) = 0;
 public:
-	virtual ~asIJITCompiler() {}
+	virtual ~asIJITCompiler() = default;
 };
 
 // JIT Compiler interface version 2
@@ -1456,7 +1456,7 @@ public:
 	virtual void NewFunction(asIScriptFunction* scriptFunc) = 0;
 	virtual void CleanFunction(asIScriptFunction *scriptFunc, asJITFunction jitFunc) = 0;
 public:
-	virtual ~asIJITCompilerV2() {}
+	virtual ~asIJITCompilerV2() = default;
 };
 
 // Byte code instructions

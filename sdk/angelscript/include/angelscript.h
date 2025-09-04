@@ -573,7 +573,7 @@ extern "C"
 	AS_API asIScriptContext *asGetActiveContext();
 
 	// Thread support
-	AS_API int               asPrepareMultithread(asIThreadManager *externalMgr = 0);
+	AS_API int               asPrepareMultithread(asIThreadManager *externalMgr = nullptr);
 	AS_API void              asUnprepareMultithread();
 	AS_API asIThreadManager *asGetThreadManager();
 	AS_API void              asAcquireExclusiveLock();
@@ -688,7 +688,7 @@ public:
 	virtual asIJITCompilerAbstract *GetJITCompiler() const = 0;
 
 	// Global functions
-	virtual int                RegisterGlobalFunction(const char *declaration, const asSFuncPtr &funcPointer, asDWORD callConv, void *auxiliary = 0) = 0;
+	virtual int                RegisterGlobalFunction(const char *declaration, const asSFuncPtr &funcPointer, asDWORD callConv, void *auxiliary = nullptr) = 0;
 	virtual asUINT             GetGlobalFunctionCount() const = 0;
 	virtual asIScriptFunction *GetGlobalFunctionByIndex(asUINT index) const = 0;
 	virtual asIScriptFunction *GetGlobalFunctionByDecl(const char *declaration) const = 0;
@@ -696,15 +696,15 @@ public:
 	// Global properties
 	virtual int    RegisterGlobalProperty(const char *declaration, void *pointer) = 0;
 	virtual asUINT GetGlobalPropertyCount() const = 0;
-	virtual int    GetGlobalPropertyByIndex(asUINT index, const char **name, const char **nameSpace = 0, int *typeId = 0, bool *isConst = 0, const char **configGroup = 0, void **pointer = 0, asDWORD *accessMask = 0) const = 0;
+	virtual int    GetGlobalPropertyByIndex(asUINT index, const char **name, const char **nameSpace = nullptr, int *typeId = nullptr, bool *isConst = nullptr, const char **configGroup = nullptr, void **pointer = nullptr, asDWORD *accessMask = nullptr) const = 0;
 	virtual int    GetGlobalPropertyIndexByName(const char *name) const = 0;
 	virtual int    GetGlobalPropertyIndexByDecl(const char *decl) const = 0;
 
 	// Object types
 	virtual int            RegisterObjectType(const char *obj, int byteSize, asQWORD flags) = 0;
 	virtual int            RegisterObjectProperty(const char *obj, const char *declaration, int byteOffset, int compositeOffset = 0, bool isCompositeIndirect = false) = 0;
-	virtual int            RegisterObjectMethod(const char *obj, const char *declaration, const asSFuncPtr &funcPointer, asDWORD callConv, void *auxiliary = 0, int compositeOffset = 0, bool isCompositeIndirect = false) = 0;
-	virtual int            RegisterObjectBehaviour(const char *obj, asEBehaviours behaviour, const char *declaration, const asSFuncPtr &funcPointer, asDWORD callConv, void *auxiliary = 0, int compositeOffset = 0, bool isCompositeIndirect = false) = 0;
+	virtual int            RegisterObjectMethod(const char *obj, const char *declaration, const asSFuncPtr &funcPointer, asDWORD callConv, void *auxiliary = nullptr, int compositeOffset = 0, bool isCompositeIndirect = false) = 0;
+	virtual int            RegisterObjectBehaviour(const char *obj, asEBehaviours behaviour, const char *declaration, const asSFuncPtr &funcPointer, asDWORD callConv, void *auxiliary = nullptr, int compositeOffset = 0, bool isCompositeIndirect = false) = 0;
 	virtual int            RegisterInterface(const char *name) = 0;
 	virtual int            RegisterInterfaceMethod(const char *intf, const char *declaration) = 0;
 	virtual asUINT         GetObjectTypeCount() const = 0;
@@ -712,10 +712,10 @@ public:
 
 	// String factory
 	virtual int RegisterStringFactory(const char *datatype, asIStringFactory *factory) = 0;
-	virtual int GetStringFactory(asDWORD* typeModifiers = 0, asIStringFactory** factory = 0) const = 0;
+	virtual int GetStringFactory(asDWORD* typeModifiers = nullptr, asIStringFactory** factory = nullptr) const = 0;
 #ifdef AS_DEPRECATED
 	// deprecated since 2024-07-27, 2.38.0
-	virtual int GetStringFactoryReturnTypeId(asDWORD *flags = 0) const = 0;
+	virtual int GetStringFactoryReturnTypeId(asDWORD *flags = nullptr) const = 0;
 #endif
 
 	// Default array type
@@ -779,20 +779,20 @@ public:
 	// Context pooling
 	virtual asIScriptContext      *RequestContext() = 0;
 	virtual void                   ReturnContext(asIScriptContext *ctx) = 0;
-	virtual int                    SetContextCallbacks(asREQUESTCONTEXTFUNC_t requestCtx, asRETURNCONTEXTFUNC_t returnCtx, void *param = 0) = 0;
+	virtual int                    SetContextCallbacks(asREQUESTCONTEXTFUNC_t requestCtx, asRETURNCONTEXTFUNC_t returnCtx, void *param = nullptr) = 0;
 
 	// String interpretation
-	virtual asETokenClass ParseToken(const char *string, size_t stringLength = 0, asUINT *tokenLength = 0) const = 0;
+	virtual asETokenClass ParseToken(const char *string, size_t stringLength = 0, asUINT *tokenLength = nullptr) const = 0;
 
 	// Garbage collection
 	virtual int  GarbageCollect(asDWORD flags = asGC_FULL_CYCLE, asUINT numIterations = 1) = 0;
-	virtual void GetGCStatistics(asUINT *currentSize, asUINT *totalDestroyed = 0, asUINT *totalDetected = 0, asUINT *newObjects = 0, asUINT *totalNewDestroyed = 0) const = 0;
+	virtual void GetGCStatistics(asUINT *currentSize, asUINT *totalDestroyed = nullptr, asUINT *totalDetected = nullptr, asUINT *newObjects = nullptr, asUINT *totalNewDestroyed = nullptr) const = 0;
 	virtual int  NotifyGarbageCollectorOfNewObject(void *obj, asITypeInfo *type) = 0;
-	virtual int  GetObjectInGC(asUINT idx, asUINT *seqNbr = 0, void **obj = 0, asITypeInfo **type = 0) = 0;
+	virtual int  GetObjectInGC(asUINT idx, asUINT *seqNbr = nullptr, void **obj = nullptr, asITypeInfo **type = nullptr) = 0;
 	virtual void GCEnumCallback(void *reference) = 0;
 	virtual void ForwardGCEnumReferences(void *ref, asITypeInfo *type) = 0;
 	virtual void ForwardGCReleaseReferences(void *ref, asITypeInfo *type) = 0;
-	virtual void SetCircularRefDetectedCallback(asCIRCULARREFFUNC_t callback, void *param = 0) = 0;
+	virtual void SetCircularRefDetectedCallback(asCIRCULARREFFUNC_t callback, void *param = nullptr) = 0;
 
 	// User data
 	virtual void *SetUserData(void *data, asPWORD type = 0) = 0;
@@ -853,12 +853,12 @@ public:
 	virtual int                RemoveFunction(asIScriptFunction *func) = 0;
 
 	// Global variables
-	virtual int         ResetGlobalVars(asIScriptContext *ctx = 0) = 0;
+	virtual int         ResetGlobalVars(asIScriptContext *ctx = nullptr) = 0;
 	virtual asUINT      GetGlobalVarCount() const = 0;
 	virtual int         GetGlobalVarIndexByName(const char *name) const = 0;
 	virtual int         GetGlobalVarIndexByDecl(const char *decl) const = 0;
 	virtual const char *GetGlobalVarDeclaration(asUINT index, bool includeNamespace = false) const = 0;
-	virtual int         GetGlobalVar(asUINT index, const char **name, const char **nameSpace = 0, int *typeId = 0, bool *isConst = 0) const = 0;
+	virtual int         GetGlobalVar(asUINT index, const char **name, const char **nameSpace = nullptr, int *typeId = nullptr, bool *isConst = nullptr) const = 0;
 	virtual void       *GetAddressOfGlobalVar(asUINT index) = 0;
 	virtual int         RemoveGlobalVar(asUINT index) = 0;
 
@@ -889,7 +889,7 @@ public:
 
 	// Byte code saving and loading
 	virtual int SaveByteCode(asIBinaryStream *out, bool stripDebugInfo = false) const = 0;
-	virtual int LoadByteCode(asIBinaryStream *in, bool *wasDebugInfoStripped = 0) = 0;
+	virtual int LoadByteCode(asIBinaryStream *in, bool *wasDebugInfoStripped = nullptr) = 0;
 
 	// User data
 	virtual void *SetUserData(void *data, asPWORD type = 0) = 0;
@@ -918,7 +918,7 @@ public:
 	virtual asEContextState GetState() const = 0;
 	virtual int             PushState() = 0;
 	virtual int             PopState() = 0;
-	virtual bool            IsNested(asUINT *nestCount = 0) const = 0;
+	virtual bool            IsNested(asUINT *nestCount = nullptr) const = 0;
 
 	// Object pointer for calling class methods
 	virtual int   SetObject(void *obj) = 0;
@@ -948,7 +948,7 @@ public:
 
 	// Exception handling
 	virtual int                SetException(const char *info, bool allowCatch = true) = 0;
-	virtual int                GetExceptionLineNumber(int *column = 0, const char **sectionName = 0) = 0;
+	virtual int                GetExceptionLineNumber(int *column = nullptr, const char **sectionName = nullptr) = 0;
 	virtual asIScriptFunction *GetExceptionFunction() = 0;
 	virtual const char *       GetExceptionString() = 0;
 	virtual bool               WillExceptionBeCaught() = 0;
@@ -960,9 +960,9 @@ public:
 	virtual void               ClearLineCallback() = 0;
 	virtual asUINT             GetCallstackSize() const = 0;
 	virtual asIScriptFunction *GetFunction(asUINT stackLevel = 0) = 0;
-	virtual int                GetLineNumber(asUINT stackLevel = 0, int *column = 0, const char **sectionName = 0) = 0;
+	virtual int                GetLineNumber(asUINT stackLevel = 0, int *column = nullptr, const char **sectionName = nullptr) = 0;
 	virtual int                GetVarCount(asUINT stackLevel = 0) = 0;
-	virtual int                GetVar(asUINT varIndex, asUINT stackLevel, const char** name, int* typeId = 0, asETypeModifiers* typeModifiers = 0, bool* isVarOnHeap = 0, int* stackOffset = 0) = 0;
+	virtual int                GetVar(asUINT varIndex, asUINT stackLevel, const char** name, int* typeId = nullptr, asETypeModifiers* typeModifiers = nullptr, bool* isVarOnHeap = nullptr, int* stackOffset = nullptr) = 0;
 #ifdef AS_DEPRECATED
 	// deprecated since 2022-05-04, 2.36.0
 	virtual const char        *GetVarName(asUINT varIndex, asUINT stackLevel = 0) = 0;
@@ -1011,7 +1011,7 @@ public:
 
 	// Arguments
 	virtual int     GetArgCount() const = 0;
-	virtual int     GetArgTypeId(asUINT arg, asDWORD *flags = 0) const = 0;
+	virtual int     GetArgTypeId(asUINT arg, asDWORD *flags = nullptr) const = 0;
 	virtual asBYTE  GetArgByte(asUINT arg) = 0;
 	virtual asWORD  GetArgWord(asUINT arg) = 0;
 	virtual asDWORD GetArgDWord(asUINT arg) = 0;
@@ -1023,7 +1023,7 @@ public:
 	virtual void   *GetAddressOfArg(asUINT arg) = 0;
 
 	// Return value
-	virtual int     GetReturnTypeId(asDWORD *flags = 0) const = 0;
+	virtual int     GetReturnTypeId(asDWORD *flags = nullptr) const = 0;
 	virtual int     SetReturnByte(asBYTE val) = 0;
 	virtual int     SetReturnWord(asWORD val) = 0;
 	virtual int     SetReturnDWord(asDWORD val) = 0;
@@ -1112,7 +1112,7 @@ public:
 
 	// Properties
 	virtual asUINT      GetPropertyCount() const = 0;
-	virtual int         GetProperty(asUINT index, const char **name, int *typeId = 0, bool *isPrivate = 0, bool *isProtected = 0, int *offset = 0, bool *isReference = 0, asDWORD *accessMask = 0, int *compositeOffset = 0, bool *isCompositeIndirect = 0, bool *isConst = 0) const = 0;
+	virtual int         GetProperty(asUINT index, const char **name, int *typeId = nullptr, bool *isPrivate = nullptr, bool *isProtected = nullptr, int *offset = nullptr, bool *isReference = nullptr, asDWORD *accessMask = nullptr, int *compositeOffset = nullptr, bool *isCompositeIndirect = nullptr, bool *isConst = nullptr) const = 0;
 	virtual const char *GetPropertyDeclaration(asUINT index, bool includeNamespace = false) const = 0;
 
 	// Behaviours
@@ -1183,8 +1183,8 @@ public:
 	virtual bool             IsProperty() const = 0;
 	virtual bool             IsVariadic() const = 0;
 	virtual asUINT           GetParamCount() const = 0;
-	virtual int              GetParam(asUINT index, int *typeId, asDWORD *flags = 0, const char **name = 0, const char **defaultArg = 0) const = 0;
-	virtual int              GetReturnTypeId(asDWORD *flags = 0) const = 0;
+	virtual int              GetParam(asUINT index, int *typeId, asDWORD *flags = nullptr, const char **name = nullptr, const char **defaultArg = nullptr) const = 0;
+	virtual int              GetReturnTypeId(asDWORD *flags = nullptr) const = 0;
 
 	// Template functions
 	virtual asUINT           GetSubTypeCount() const = 0;
@@ -1202,7 +1202,7 @@ public:
 
 	// Debug information
 	virtual asUINT           GetVarCount() const = 0;
-	virtual int              GetVar(asUINT index, const char **name, int *typeId = 0) const = 0;
+	virtual int              GetVar(asUINT index, const char **name, int *typeId = nullptr) const = 0;
 	virtual const char      *GetVarDecl(asUINT index, bool includeNamespace = false) const = 0;
 #ifdef AS_DEPRECATED
 	// deprecated since 2025-11-14, 2.39.0
@@ -1213,7 +1213,7 @@ public:
 	virtual int              GetLineEntry(asUINT index, int* row, int* col, const char** sectionName, const asDWORD** byteCode) const = 0;
 
 	// For JIT compilation
-	virtual asDWORD         *GetByteCode(asUINT *length = 0) = 0;
+	virtual asDWORD         *GetByteCode(asUINT *length = nullptr) = 0;
 	virtual int              SetJITFunction(asJITFunction jitFunc) = 0;
 	virtual asJITFunction    GetJITFunction() const = 0;
 

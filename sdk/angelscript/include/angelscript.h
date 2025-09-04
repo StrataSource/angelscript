@@ -1293,6 +1293,9 @@ inline asSFuncPtr asFunctionPtr<asGENFUNC_t>(asGENFUNC_t func)
 // Method pointers
 
 // Declare a dummy class so that we can determine the size of a simple method pointer
+#ifdef __INTELLISENSE__
+class __single_inheritance asCSimpleDummy;
+#endif
 class asCSimpleDummy {};
 typedef void (asCSimpleDummy::*asSIMPLEMETHOD_t)();
 const int SINGLE_PTR_SIZE = sizeof(asSIMPLEMETHOD_t);
@@ -1301,17 +1304,10 @@ const int SINGLE_PTR_SIZE = sizeof(asSIMPLEMETHOD_t);
 template <int N>
 struct asSMethodPtr
 {
+	// This version of the function should never be executed, nor compiled,
+	// as it would mean that the size of the method pointer cannot be determined.
 	template<class M>
-	static asSFuncPtr Convert(M Mthd)
-	{
-		// This version of the function should never be executed, nor compiled,
-		// as it would mean that the size of the method pointer cannot be determined.
-
-		int ERROR_UnsupportedMethodPtr[N-100];
-
-		asSFuncPtr p(0);
-		return p;
-	}
+	static asSFuncPtr Convert(M Mthd) = delete;
 };
 
 // Template specialization

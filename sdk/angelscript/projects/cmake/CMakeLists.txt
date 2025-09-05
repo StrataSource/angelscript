@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.10)
 
+set(CMAKE_EXPERIMENTAL_CXX_MODULE_DYNDEP 0)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_CXX_EXTENSIONS OFF)
 project(angelscript)
 
 option(BUILD_SHARED_LIBS "Build shared library" OFF)

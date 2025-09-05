@@ -190,7 +190,7 @@ asQWORD asStringScanUInt64(const char *string, int base, size_t *numScanned, boo
 
 	const char *end = string;
 
-	static const asQWORD QWORD_MAX = (~asQWORD(0));
+	constexpr asQWORD QWORD_MAX = (~asQWORD(0));
 
 	asQWORD res = 0;
 	if( base == 10 )

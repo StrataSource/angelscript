@@ -390,7 +390,7 @@
 
 // Error codes
 #define ERROR_NAME(x) #x
-static const char*const errorNames[] =
+static inline constexpr const char*const errorNames[] =
 {
 	ERROR_NAME(asSUCCESS),
 	ERROR_NAME(asERROR),

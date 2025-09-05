@@ -6522,7 +6522,7 @@ struct POW_INFO
 	char    HighBit;
 };
 
-const POW_INFO pow_info[] =
+static constexpr const POW_INFO pow_info[] =
 {
 	{          0ULL,          0UL,     0,     0, 0 },  // 0 is a special case
 	{          0ULL,          0UL,     0,     0, 1 },  // 1 is a special case

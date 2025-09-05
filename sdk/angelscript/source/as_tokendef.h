@@ -191,7 +191,7 @@ struct sTokenWord
 
 #define asTokenDef(str, tok) {str, sizeof(str)-1, tok}
 
-sTokenWord const tokenWords[] =
+inline constexpr sTokenWord const tokenWords[] =
 {
 	asTokenDef("+"         , ttPlus),
 	asTokenDef("+="        , ttAddAssign),
@@ -305,28 +305,28 @@ sTokenWord const tokenWords[] =
 	asTokenDef("xor"       , ttXor),
 };
 
-const unsigned int numTokenWords = sizeof(tokenWords)/sizeof(sTokenWord);
+inline constexpr const unsigned int numTokenWords = sizeof(tokenWords)/sizeof(sTokenWord);
 
-const char * const whiteSpace = " \t\r\n";
+inline constexpr const char whiteSpace[] = " \t\r\n";
 
 // Some keywords that are not considered tokens by the parser
 // These only have meaning in specific situations. Outside these
 // situations they are treated as normal identifiers.
-const char * const THIS_TOKEN      = "this";
-const char * const FROM_TOKEN      = "from";
-const char * const SUPER_TOKEN     = "super";
-const char * const SHARED_TOKEN    = "shared";
-const char * const FINAL_TOKEN     = "final";
-const char * const OVERRIDE_TOKEN  = "override";
-const char * const GET_TOKEN       = "get";
-const char * const SET_TOKEN       = "set";
-const char * const ABSTRACT_TOKEN  = "abstract";
-const char * const FUNCTION_TOKEN  = "function";
-const char * const IF_HANDLE_TOKEN = "if_handle_then_const";
-const char * const EXTERNAL_TOKEN  = "external";
-const char * const EXPLICIT_TOKEN  = "explicit";
-const char * const PROPERTY_TOKEN  = "property";
-const char * const DELETE_TOKEN    = "delete";
+inline constexpr const char THIS_TOKEN[]      = "this";
+inline constexpr const char FROM_TOKEN[]      = "from";
+inline constexpr const char SUPER_TOKEN[]     = "super";
+inline constexpr const char SHARED_TOKEN[]    = "shared";
+inline constexpr const char FINAL_TOKEN[]     = "final";
+inline constexpr const char OVERRIDE_TOKEN[]  = "override";
+inline constexpr const char GET_TOKEN[]       = "get";
+inline constexpr const char SET_TOKEN[]       = "set";
+inline constexpr const char ABSTRACT_TOKEN[]  = "abstract";
+inline constexpr const char FUNCTION_TOKEN[]  = "function";
+inline constexpr const char IF_HANDLE_TOKEN[] = "if_handle_then_const";
+inline constexpr const char EXTERNAL_TOKEN[]  = "external";
+inline constexpr const char EXPLICIT_TOKEN[]  = "explicit";
+inline constexpr const char PROPERTY_TOKEN[]  = "property";
+inline constexpr const char DELETE_TOKEN[]    = "delete";
 
 END_AS_NAMESPACE
 

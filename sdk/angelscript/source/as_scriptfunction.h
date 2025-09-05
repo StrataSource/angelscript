@@ -395,7 +395,7 @@ public:
 	asSSystemFunctionInterface  *sysFuncIntf;
 };
 
-const char * const DELEGATE_FACTORY = "$dlgte";
+inline constexpr const char DELEGATE_FACTORY[] = "$dlgte";
 asCScriptFunction *CreateDelegate(asCScriptFunction *func, void *obj);
 
 END_AS_NAMESPACE

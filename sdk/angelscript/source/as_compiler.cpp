@@ -7976,7 +7976,7 @@ asUINT asCCompiler::ImplicitConvObjectToPrimitive(asCExprContext *ctx, const asC
 	{
 		// This matrix describes the priorities of the types to search for, for each target type
 		// The first column is the target type, the priorities goes from left to right
-		eTokenType matchMtx[10][10] =
+		constexpr eTokenType matchMtx[10][10] =
 		{
 			{ttDouble, ttFloat,  ttInt64,  ttUInt64, ttInt,    ttUInt,   ttInt16,  ttUInt16, ttInt8,   ttUInt8},
 			{ttFloat,  ttDouble, ttInt64,  ttUInt64, ttInt,    ttUInt,   ttInt16,  ttUInt16, ttInt8,   ttUInt8},
@@ -7991,7 +7991,7 @@ asUINT asCCompiler::ImplicitConvObjectToPrimitive(asCExprContext *ctx, const asC
 		};
 
 		// Which row to use?
-		eTokenType *row = 0;
+		const eTokenType *row = 0;
 		for( unsigned int type = 0; type < 10; type++ )
 		{
 			if( to.GetTokenType() == matchMtx[type][0] )

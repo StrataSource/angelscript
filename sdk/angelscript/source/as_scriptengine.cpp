@@ -79,7 +79,7 @@ AS_API const char * asGetLibraryVersion()
 
 AS_API const char * asGetLibraryOptions()
 {
-	const char *string = " "
+	static constexpr const char string[] = " "
 
 	// Options
 #ifdef AS_MAX_PORTABILITY

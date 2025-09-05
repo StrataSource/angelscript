@@ -457,7 +457,7 @@ typedef void (asCUnknownClass::*asMETHOD_t)();
 
 struct asSFuncPtr
 {
-	asSFuncPtr(asBYTE f = 0)
+	constexpr asSFuncPtr(asBYTE f = 0)
 	{
 		for( size_t n = 0; n < sizeof(ptr.dummy); n++ )
 			ptr.dummy[n] = 0;
@@ -604,7 +604,7 @@ END_AS_NAMESPACE
 BEGIN_AS_NAMESPACE
 
 template<typename T>
-asUINT asGetTypeTraits()
+consteval asUINT asGetTypeTraits()
 {
 #if defined(_MSC_VER) || defined(_LIBCPP_TYPE_TRAITS) || (__GNUC__ >= 5) || (defined(__clang__) && !defined(CLANG_PRE_STANDARD))
 	// MSVC, XCode/Clang, and gnuc 5+
@@ -1699,7 +1699,7 @@ enum asEBCType
 };
 
 // Instruction type sizes
-const int asBCTypeSize[21] =
+inline constexpr int asBCTypeSize[21] =
 {
 	0, // asBCTYPE_INFO
 	1, // asBCTYPE_NO_ARG
@@ -1754,7 +1754,7 @@ struct asSBCInfo
 #define asBCINFO(b,t,s) {asBC_##b, asBCTYPE_##t, s, #b}
 #define asBCINFO_DUMMY(b) {asBC_MAXBYTECODE, asBCTYPE_INFO, 0, "BC_" #b}
 
-const asSBCInfo asBCInfo[256] =
+inline constexpr asSBCInfo asBCInfo[256] =
 {
 	asBCINFO(PopPtr,	NO_ARG,			-AS_PTR_SIZE),
 	asBCINFO(PshGPtr,	PTR_ARG,		AS_PTR_SIZE),

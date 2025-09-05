@@ -6181,45 +6181,24 @@ int asCScriptEngine::RegisterTypedef(const char *type, const char *decl)
 		// Let the application recover from this error, for example if the same typedef is registered twice
 		return asALREADY_REGISTERED;
 
-	// Grab the data type
-	size_t tokenLen;
-	eTokenType token;
+	// Determine the object type
 	asCDataType dataType;
+	asCBuilder bld(this, 0);
+	int r = bld.ParseDataType(decl, &dataType, defaultNamespace);
+	if( r < 0 )
+		return ConfigError(r, "RegisterTypedef", type, decl);
 
-	//	Create the data type
-	token = tok.GetToken(decl, strlen(decl), &tokenLen);
-	switch(token)
-	{
-	case ttBool:
-	case ttInt:
-	case ttInt8:
-	case ttInt16:
-	case ttInt64:
-	case ttUInt:
-	case ttUInt8:
-	case ttUInt16:
-	case ttUInt64:
-	case ttFloat:
-	case ttDouble:
-		if( strlen(decl) != tokenLen )
-		{
-			return ConfigError(asINVALID_TYPE, "RegisterTypedef", type, decl);
-		}
-		break;
-
-	default:
-		return ConfigError(asINVALID_TYPE, "RegisterTypedef", type, decl);
-	}
-
-	dataType = asCDataType::CreatePrimitive(token, false);
+	// Don't allow application to modify primitives or handles
+	if(dataType.IsObjectHandle() && !(dataType.GetTypeInfo()->GetFlags() & asOBJ_IMPLICIT_HANDLE))
+		return ConfigError(asINVALID_ARG, "RegisterTypedef", type, decl);
 
 	// Make sure the name is not a reserved keyword
-	token = tok.GetToken(type, strlen(type), &tokenLen);
+	size_t tokenLen;
+	eTokenType token = tok.GetToken(type, strlen(type), &tokenLen);
 	if( token != ttIdentifier || strlen(type) != tokenLen )
 		return ConfigError(asINVALID_NAME, "RegisterTypedef", type, decl);
 
-	asCBuilder bld(this, 0);
-	int r = bld.CheckNameConflict(type, 0, 0, defaultNamespace, true, false, false);
+	r = bld.CheckNameConflict(type, 0, 0, defaultNamespace, true, false, false);
 	if( r < 0 )
 		return ConfigError(asNAME_TAKEN, "RegisterTypedef", type, decl);
 
@@ -6309,8 +6288,6 @@ int asCScriptEngine::RegisterEnum(const char* typeName, const char* underlyingTy
 	asCEnumType *st = asNEW(asCEnumType)(this);
 	if( st == 0 )
 		return ConfigError(asOUT_OF_MEMORY, "RegisterEnum", typeName, 0);
-
-	dataType.CreatePrimitive(ttInt, false);
 
 	st->flags = asOBJ_ENUM | asOBJ_SHARED;
 	st->size = dataType.GetSizeInMemoryBytes();

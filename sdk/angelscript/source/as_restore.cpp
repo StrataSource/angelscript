@@ -1721,7 +1721,13 @@ void asCReader::ReadTypeDeclaration(asCTypeInfo *type, int phase, bool *isExtern
 			asCTypedefType *td = CastToTypedefType(type);
 			asASSERT(td);
 			eTokenType t = (eTokenType)ReadEncodedUInt();
-			td->aliasForType = asCDataType::CreatePrimitive(t, false);
+			auto ti = ReadTypeInfo();
+			bool isConst;
+			ReadData(&isConst, 1);
+			if( ti )
+				td->aliasForType = asCDataType::CreateType(ti, isConst);
+			else
+				td->aliasForType = asCDataType::CreatePrimitive(t, false);
 		}
 		else
 		{
@@ -4561,6 +4567,9 @@ void asCWriter::WriteTypeDeclaration(asCTypeInfo *type, int phase)
 			asCTypedefType *td = CastToTypedefType(type);
 			eTokenType t = td->aliasForType.GetTokenType();
 			WriteEncodedInt64(t);
+			WriteTypeInfo(td->aliasForType.GetTypeInfo());
+			bool isConst = td->aliasForType.IsReadOnly();
+			WriteData(&isConst, 1);
 		}
 		else
 		{

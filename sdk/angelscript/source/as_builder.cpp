@@ -4880,8 +4880,17 @@ int asCBuilder::RegisterTypedef(asCScriptNode *node, asCScriptCode *file, asSNam
 	asCScriptNode *tmp = node->firstChild;
 	asASSERT(NULL != tmp && snDataType == tmp->nodeType);
 	asCDataType dataType;
-	dataType.CreatePrimitive(tmp->tokenType, false);
-	dataType.SetTokenType(tmp->tokenType);
+	{
+		asCString typeName;
+		typeName.Assign(&file->code[tmp->tokenPos], tmp->tokenLength);
+		asCBuilder bld(engine, 0);
+		int r = bld.ParseDataType(typeName.AddressOf(), &dataType, ns);
+		if( asSUCCESS != r )
+		{
+			node->Destroy(engine);
+			return r;
+		}
+	}
 	tmp = tmp->next;
 
 	// Grab the name of the typedef

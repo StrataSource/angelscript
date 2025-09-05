@@ -409,9 +409,9 @@ asUINT asCObjectType::GetBehaviourCount() const
 	if( beh.listFactory )            count++;
 	if( beh.getWeakRefFlag )         count++;
 
-	// For reference types, the factories are also stored in the constructor
-	// list, so it is sufficient to enumerate only those
 	count += (asUINT)beh.constructors.GetLength();
+
+	count += (asUINT)beh.factories.GetLength();
 
 	return count;
 }
@@ -503,6 +503,14 @@ asIScriptFunction *asCObjectType::GetBehaviourByIndex(asUINT index, asEBehaviour
 	}
 	else 
 		count += (asUINT)beh.constructors.GetLength();
+
+	if( index - count < beh.factories.GetLength() )
+	{
+		if( outBehaviour ) *outBehaviour = asBEHAVE_CONSTRUCT;
+		return engine->scriptFunctions[beh.factories[index - count]];
+	}
+	else
+		count += (asUINT)beh.factories.GetLength();
 
 	return 0;
 }

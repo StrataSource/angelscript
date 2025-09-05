@@ -1409,6 +1409,54 @@
 
 
 // The assert macro
+#ifdef GAME_STRATA
+#ifndef _T
+#define _T( arg ) arg
+#endif
+
+#ifdef _WIN32
+	#define DebuggerBreak()		__debugbreak()
+	#define PLATFORM_INTERFACE extern "C" __declspec( dllimport )
+#else
+	#define DebuggerBreak()		__asm__( "int $0x3;")
+	#define PLATFORM_INTERFACE extern "C"
+#endif
+PLATFORM_INTERFACE bool IsAssertIgnored(const char* file, int line);
+PLATFORM_INTERFACE void CallAssertFailedNotifyFunc( const char *pchFile, int nLine, const char *pchMessage );
+PLATFORM_INTERFACE bool ShouldUseNewAssertDialog();
+PLATFORM_INTERFACE bool DoNewAssertDialog( const char *pFile, int line, const char *pExpression );
+enum LoggingResponse_t
+{
+	LR_CONTINUE,
+	LR_DEBUGGER,
+	LR_ABORT,
+};
+extern LoggingResponse_t LoggingSystem_LogAssert(const char* pMessageFormat, ...);
+#define Log_Assert( Message, ... ) LoggingSystem_LogAssert( Message __VA_OPT__( , ) __VA_ARGS__ )
+#define DbgFlagMacro_DoNewAssertDialog( pFile, line, pExpression ) DoNewAssertDialog( pFile, line, pExpression )
+#define  _AssertMsg( _exp, _msg )	\
+	do {																															\
+		if (!(_exp)) 																												\
+		{																															\
+			if(IsAssertIgnored(__FILE__, __LINE__)) break;																			\
+			LoggingResponse_t assertMsg_ret = Log_Assert( "%s (%d) : %s\n", __FILE__, __LINE__, static_cast<const char*>( _msg ) );	\
+			CallAssertFailedNotifyFunc( __FILE__, __LINE__, _msg );																	\
+			if ( assertMsg_ret == LR_DEBUGGER )																						\
+			{																														\
+				if ( ShouldUseNewAssertDialog() )																					\
+				{																													\
+					if ( DbgFlagMacro_DoNewAssertDialog( __FILE__, __LINE__, _msg ) )												\
+						DebuggerBreak();																							\
+				}																													\
+			}																														\
+		}																															\
+	} while (0)
+#ifdef _DEBUG
+#define asASSERT(x) _AssertMsg( x, _T("Assertion Failed: ") _T(#x) )
+#else
+#define asASSERT(x) ((void)0)
+#endif
+#else
 #if defined(ANDROID) || defined(__ANDROID__)
 	#if defined(AS_DEBUG)
 		#include <android/log.h>
@@ -1426,6 +1474,7 @@
 #else
 	#include <assert.h>
 	#define asASSERT(x) assert(x)
+#endif
 #endif
 
 

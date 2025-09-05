@@ -8,10 +8,10 @@ project(angelscript)
 
 option(BUILD_SHARED_LIBS "Build shared library" OFF)
 option(AS_NO_EXCEPTIONS "Disable exception handling in script context" OFF)
-option(AS_DISABLE_INSTALL "Disable installation of AngelScript" OFF)
+option(AS_DISABLE_INSTALL "Disable installation of AngelScript" ON)
 
 if(MSVC)
-    set(MSVC_COMPILE_FLAGS "/MP" CACHE STRING "Compiler flags to use with MSVC")
+    set(MSVC_COMPILE_FLAGS "/MP;/Zc:preprocessor" CACHE STRING "Compiler flags to use with MSVC")
 endif()
 
 if(APPLE)

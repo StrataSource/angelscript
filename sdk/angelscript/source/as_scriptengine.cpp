@@ -1141,6 +1141,9 @@ int asCScriptEngine::ShutDownAndRelease()
 	// violations later on when the pool releases its contexts.
 	SetContextCallbacks(0, 0, 0);
 
+	for( asUINT i = 0, c = shutdownCallbacks.GetLength(); i < c; ++i )
+		shutdownCallbacks[i](this);
+
 	// The modules must be deleted first, as they may use
 	// object types from the config groups
 	for( asUINT n = (asUINT)scriptModules.GetLength(); n-- > 0; )
@@ -6735,6 +6738,13 @@ int asCScriptEngine::SetTranslateAppExceptionCallback(const asSFuncPtr &callback
 
 	return r;
 #endif
+}
+
+// interface
+void asCScriptEngine::AddEngineShutdownCallback(asCLEANENGINEFUNC_t callback)
+{
+	asASSERT( !shutdownCallbacks.Exists(callback) );
+	shutdownCallbacks.PushLast(callback);
 }
 
 // internal

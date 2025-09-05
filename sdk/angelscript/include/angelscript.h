@@ -807,6 +807,8 @@ public:
 	// Exception handling
 	virtual int SetTranslateAppExceptionCallback(const asSFuncPtr &callback, void *param, int callConv) = 0;
 
+	virtual void AddEngineShutdownCallback(asCLEANENGINEFUNC_t callback) = 0;
+
 protected:
 	virtual ~asIScriptEngine() = default;
 };

@@ -208,6 +208,8 @@ public:
 	// Exception handling
 	virtual int SetTranslateAppExceptionCallback(const asSFuncPtr &callback, void *param, int callConv);
 
+	virtual void AddEngineShutdownCallback(asCLEANENGINEFUNC_t callback);
+
 //===========================================================
 // internal methods
 //===========================================================
@@ -480,6 +482,8 @@ public:
 	asCArray<STypeInfoClean>  cleanTypeInfoFuncs;
 	struct SScriptObjClean { asPWORD type; asCLEANSCRIPTOBJECTFUNC_t cleanFunc; };
 	asCArray<SScriptObjClean> cleanScriptObjectFuncs;
+
+	asCArray<asCLEANENGINEFUNC_t> shutdownCallbacks;
 
 	// Synchronization for threads
 	DECLAREREADWRITELOCK(mutable engineRWLock)

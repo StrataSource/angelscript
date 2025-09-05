@@ -2270,11 +2270,17 @@ void asCReader::ReadObjectProperty(asCObjectType *ot)
 	bool isPrivate = (flags & 1) ? true : false;
 	bool isProtected = (flags & 2) ? true : false;
 	bool isInherited = (flags & 4) ? true : false;
+	bool isComposite = (flags & 8) ? true : false;
+	asASSERT( !isComposite ); // TODO: verify that this actually works
 
 	// TODO: shared: If the type is shared and pre-existing, we should just
 	//               validate that the loaded methods match the original
 	if( !existingShared.MoveTo(0, ot) )
-		ot->AddPropertyToClass(name, dt, isPrivate, isProtected, isInherited);
+	{
+		auto prop = ot->AddPropertyToClass(name, dt, isPrivate, isProtected, isInherited, isComposite);
+		prop->compositeOffset = flags >> 4;
+		prop->isCompositeIndirect = isComposite;
+	}
 }
 
 void asCReader::ReadDataType(asCDataType *dt)
@@ -4761,6 +4767,9 @@ void asCWriter::WriteObjectProperty(asCObjectProperty* prop)
 	if( prop->isPrivate ) flags |= 1;
 	if( prop->isProtected ) flags |= 2;
 	if( prop->isInherited ) flags |= 4;
+	if( prop->isCompositeIndirect ) flags |= 8;
+	asASSERT( !prop->isCompositeIndirect ); // TODO: figure out what to do with this
+	flags |= prop->compositeOffset << 4;
 	WriteEncodedInt64(flags);
 }
 

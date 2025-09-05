@@ -389,6 +389,7 @@ protected:
 		SL_GLOBALFUNC,
 		SL_GLOBALTYPE,
 		SL_ENUMVAL,
+		SL_BEHAVIOUR,
 		SL_ERROR = -1
 	};
 
@@ -491,6 +492,8 @@ protected:
 	bool isCompilingDefaultArg;
 	bool isProcessingDeferredParams;
 	int  noCodeOutput;
+
+	bool allowBehaviourSymbol;
 };
 
 END_AS_NAMESPACE

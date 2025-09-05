@@ -379,8 +379,23 @@ public:
 	// It is used principally during building, cleanup, and garbage detection for script functions
 	asCMap<void*, asCGlobalProperty*> varAddressMap; // doesn't increase ref count
 
+	class filteredFuncCArray : public asCArray<asCScriptFunction *>
+	{
+		using T = asCScriptFunction*;
+	public:
+		using asCArray<asCScriptFunction*>::asCArray;
+		const T& operator [](asUINT index) const
+		{
+			return asCArray<asCScriptFunction*>::operator[](index & ~FUNC_VIRT_NOLOOKUP);
+		}
+		T& operator [](asUINT index)
+		{
+			return asCArray<asCScriptFunction*>::operator[](index & ~FUNC_VIRT_NOLOOKUP);
+		}
+	};
+
 	// Stores all functions, i.e. registered functions, script functions, class methods, behaviours, etc.
-	asCArray<asCScriptFunction *> scriptFunctions;       // doesn't increase ref count
+	filteredFuncCArray            scriptFunctions;       // doesn't increase ref count
 	asCArray<int>                 freeScriptFunctionIds;
 	asCArray<asCScriptFunction *> signatureIds;
 

@@ -68,6 +68,8 @@ struct asSTypeBehaviour
 		gcReleaseAllReferences = 0;
 		templateCallback = 0;
 		getWeakRefFlag = 0;
+		instantiateFromScript = 0;
+		retrieveOwningScriptInstance = 0;
 	}
 
 	int factory;
@@ -91,6 +93,9 @@ struct asSTypeBehaviour
 	// Weakref behaviours
 	int getWeakRefFlag;
 
+	int instantiateFromScript;
+	int retrieveOwningScriptInstance;
+
 	asCArray<int> factories;
 	asCArray<int> constructors;
 };
@@ -98,7 +103,7 @@ struct asSTypeBehaviour
 class asCScriptEngine;
 struct asSNameSpace;
 
-class asCObjectType : public asCTypeInfo
+class asCObjectType final : public asCTypeInfo
 {
 public:
 	asITypeInfo       *GetBaseType() const;
@@ -133,7 +138,7 @@ public:
 
 	bool IsInterface() const;
 
-	asCObjectProperty *AddPropertyToClass(const asCString &name, const asCDataType &dt, bool isPrivate, bool isProtected, bool isInherited);
+	asCObjectProperty *AddPropertyToClass(const asCString &name, const asCDataType &dt, bool isPrivate, bool isProtected, bool isInherited, bool isIndirect);
 	void ReleaseAllProperties();
 
 #ifdef WIP_16BYTE_ALIGN
@@ -146,7 +151,10 @@ public:
 	asCArray<asCObjectType*>     interfaces;
 	asCArray<asUINT>             interfaceVFTOffsets;
 	asCObjectType *              derivedFrom;
+	asCObjectType *              derivedFromNative;
+	asCObjectProperty *          nativeObjectProperty;
 	asCArray<asCScriptFunction*> virtualFunctionTable;
+	asCArray<asCScriptFunction*> nativeJumpTableFunctions; // this just tracks functions that didn't get added to virtualFunctionTable
 
 	// Used for funcdefs declared as members of class.
 	// TODO: child funcdef: Should be possible to enumerate these from application

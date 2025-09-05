@@ -52,6 +52,7 @@ BEGIN_AS_NAMESPACE
 
 // TODO: import: Remove this when the imported functions are removed
 static inline constexpr int FUNC_IMPORTED = 0x40000000;
+static inline constexpr int FUNC_VIRT_NOLOOKUP = 0x20000000;
 
 class asCScriptEngine;
 class asCCompiler;

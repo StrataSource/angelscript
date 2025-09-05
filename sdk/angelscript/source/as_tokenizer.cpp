@@ -51,6 +51,7 @@ asCTokenizer::asCTokenizer()
 {
 	engine = 0;
 	memset(keywordTable, 0, sizeof(keywordTable));
+	allowDollarIdentifier = false;
 
 	InitJumpTable();
 }
@@ -437,7 +438,8 @@ bool asCTokenizer::IsIdentifier(const char *source, size_t sourceLength, size_t 
 	if( (c >= 'a' && c <= 'z') ||
 		(c >= 'A' && c <= 'Z') ||
 		c == '_' ||
-		(c < 0 && engine->ep.allowUnicodeIdentifiers) )
+		(c < 0 && engine->ep.allowUnicodeIdentifiers) ||
+		(allowDollarIdentifier && c == '$') )
 	{
 		tokenType   = ttIdentifier;
 		tokenLength = 1;

@@ -1292,7 +1292,7 @@ asCGlobalProperty *asCBuilder::GetGlobalProperty(const char *prop, asSNameSpace 
 	return 0;
 }
 
-int asCBuilder::ParseFunctionDeclaration(asCObjectType *objType, const char *decl, asCScriptFunction *func, bool isSystemFunction, asCArray<bool> *paramAutoHandles, bool *returnAutoHandle, asSNameSpace *ns, asCScriptNode **listPattern, asCObjectType **outParentClass)
+int asCBuilder::ParseFunctionDeclaration(asCObjectType *objType, const char *decl, asCScriptFunction *func, bool isSystemFunction, asCArray<bool> *paramAutoHandles, bool *returnAutoHandle, asSNameSpace *ns, asCScriptNode **listPattern, asCObjectType **outParentClass, bool allowFinal)
 {
 	asASSERT( objType || ns );
 
@@ -1475,6 +1475,8 @@ int asCBuilder::ParseFunctionDeclaration(asCObjectType *objType, const char *dec
 			func->SetExplicit(true);
 		else if( source.TokenEquals(n->tokenPos, n->tokenLength, PROPERTY_TOKEN))
 			func->SetProperty(true);
+		else if( allowFinal && source.TokenEquals(n->tokenPos, n->tokenLength, FINAL_TOKEN))
+			func->SetFinal(true);
 		else
 			return asINVALID_DECLARATION;
 
@@ -3339,7 +3341,7 @@ void asCBuilder::DetermineTypeRelations()
 				{
 					AddInterfaceFromMixinToClass(decl, node, mixin);
 				}
-				else if (!(objType->flags & asOBJ_SCRIPT_OBJECT) ||
+				else if ((!(objType->flags & asOBJ_SCRIPT_OBJECT) && objType->beh.instantiateFromScript == 0) ||
 					(objType->flags & asOBJ_NOINHERIT))
 				{
 					// Either the class is not a script class or interface
@@ -3407,6 +3409,22 @@ void asCBuilder::DetermineTypeRelations()
 								objType->AddRefInternal();
 							}
 						}
+					}
+				}
+				else if (!(objType->flags & asOBJ_SCRIPT_OBJECT) && objType->beh.instantiateFromScript != 0)
+				{
+					// Verify that the base class is the same as the original shared type
+					if (auto d = CastToObjectType(decl->typeInfo)->derivedFrom; d != nullptr && d != objType)
+					{
+						asCString str;
+						str.Format(TXT_SHARED_s_DOESNT_MATCH_ORIGINAL, decl->typeInfo->GetName());
+						WriteError(str, file, node);
+					}
+					else
+					{
+						// Set the base class
+						CastToObjectType(decl->typeInfo)->derivedFrom = objType;
+						objType->AddRefInternal();
 					}
 				}
 				else
@@ -3489,13 +3507,43 @@ void asCBuilder::CompileClasses(asUINT numTempl)
 
 			// TODO: Need to check for name conflict with new class methods
 
+			int nativeOffset = -1;
+			if( !(baseType->flags & asOBJ_SCRIPT_OBJECT) && baseType->beh.instantiateFromScript != 0 )
+			{
+				auto f = engine->scriptFunctions[baseType->beh.instantiateFromScript];
+				auto base = AddPropertyToClass(decl, "__native__", f->returnType, true, false, true);
+				nativeOffset = base->byteOffset;
+				ot->derivedFromNative = CastToObjectType(base->type.GetTypeInfo());
+				ot->nativeObjectProperty = base;
+			}
+			else if( baseType->nativeObjectProperty )
+			{
+				asCObjectProperty *prop = AddPropertyToClass(decl, baseType->nativeObjectProperty->name, baseType->nativeObjectProperty->type, baseType->nativeObjectProperty->isPrivate, baseType->nativeObjectProperty->isProtected, true);
+				// The properties must maintain the same offset
+				asASSERT( prop && prop->byteOffset == baseType->nativeObjectProperty->byteOffset );
+				nativeOffset = prop->byteOffset;
+				ot->derivedFromNative = CastToObjectType(prop->type.GetTypeInfo());
+				ot->nativeObjectProperty = prop;
+			}
+
 			// Copy properties from base class to derived class
 			for( asUINT p = 0; p < baseType->properties.GetLength(); p++ )
 			{
-				asCObjectProperty *prop = AddPropertyToClass(decl, baseType->properties[p]->name, baseType->properties[p]->type, baseType->properties[p]->isPrivate, baseType->properties[p]->isProtected, true);
-
-				// The properties must maintain the same offset
-				asASSERT(prop && prop->byteOffset == baseType->properties[p]->byteOffset); UNUSED_VAR(prop);
+				if( baseType->properties[p] == baseType->nativeObjectProperty )
+					continue;
+				bool isComposite = baseType->properties[p]->isCompositeIndirect || !( baseType->flags & asOBJ_SCRIPT_OBJECT );
+				asCObjectProperty *prop = AddPropertyToClass(decl, baseType->properties[p]->name, baseType->properties[p]->type, baseType->properties[p]->isPrivate, baseType->properties[p]->isProtected, true, nullptr, nullptr, isComposite);
+				if( nativeOffset > -1 && isComposite )
+				{
+					prop->compositeOffset = nativeOffset;
+					prop->isCompositeIndirect = true;
+					prop->byteOffset = baseType->properties[p]->byteOffset;
+				}
+				else
+				{
+					// The properties must maintain the same offset
+					asASSERT( prop && prop->byteOffset == baseType->properties[p]->byteOffset );
+				}
 			}
 
 			// Copy methods from base class to derived class
@@ -3557,17 +3605,55 @@ void asCBuilder::CompileClasses(asUINT numTempl)
 					}
 				}
 
-				if( !found )
+				int id = baseType->methods[m];
+				if( nativeOffset > -1 )
+				{
+					auto func = engine->scriptFunctions[id];
+					asCScriptFunction* vf = asNEW(asCScriptFunction)(engine, module, asFUNC_VIRTUAL);
+					vf->name              = func->name;
+					vf->nameSpace         = func->nameSpace;
+					vf->returnType        = func->returnType;
+					vf->parameterTypes    = func->parameterTypes;
+					vf->inOutFlags        = func->inOutFlags;
+					id = vf->id           = engine->GetNextScriptFunctionId();
+					vf->objectType        = func->objectType;
+					vf->objectType->AddRefInternal();
+					vf->signatureId       = func->signatureId;
+					vf->vfTableIdx        = m;
+					vf->traits            = func->traits;
+					vf->sysFuncIntf	      = asNEW(asSSystemFunctionInterface)(*func->sysFuncIntf);
+					vf->sysFuncIntf->isCompositeIndirect = true;
+					vf->sysFuncIntf->compositeOffset = nativeOffset;
+					vf->defaultArgs.AllocateNoConstruct(func->defaultArgs.GetLength(), false);
+					for( int i = 0, c = func->defaultArgs.GetLength(); i < c; ++i )
+						if( const asCString *arg = func->defaultArgs[i] )
+							vf->defaultArgs.PushLast(asNEW(asCString)(*arg));
+						else
+							vf->defaultArgs.PushLast(0);
+
+					// Clear the shared trait since the virtual function should not have that
+					vf->SetShared(false);
+
+					module->AddScriptFunction(vf);
+
+					if( !found )
+						ot->virtualFunctionTable.PushLast(vf);
+					else
+						ot->nativeJumpTableFunctions.PushLast(vf);
+					engine->AddScriptFunction(vf);
+				}
+				else if( !found )
 				{
 					// Push the base class function on the virtual function table
-					ot->virtualFunctionTable.PushLast(baseType->virtualFunctionTable[m]);
-					baseType->virtualFunctionTable[m]->AddRefInternal();
+					asCScriptFunction* vf = baseType->virtualFunctionTable[m];
+					ot->virtualFunctionTable.PushLast(vf);
+					vf->AddRefInternal();
 
-					CheckForConflictsDueToDefaultArgs(decl->script, decl->node, baseType->virtualFunctionTable[m], ot);
+					CheckForConflictsDueToDefaultArgs(decl->script, decl->node, vf, ot);
 				}
 
-				ot->methods.PushLast(baseType->methods[m]);
-				engine->scriptFunctions[baseType->methods[m]]->AddRefInternal();
+				ot->methods.PushLast(id);
+				engine->scriptFunctions[id]->AddRefInternal();
 			}
 		}
 
@@ -3579,6 +3665,7 @@ void asCBuilder::CompileClasses(asUINT numTempl)
 				asCScriptFunction *func = GetFunctionDescription(ot->methods[m]);
 				if( func->funcType != asFUNC_VIRTUAL )
 				{
+					asASSERT(func->funcType == asFUNC_SCRIPT);
 					// Move the reference from the method list to the virtual function list
 					ot->methods.RemoveIndex(m);
 					ot->virtualFunctionTable.PushLast(func);
@@ -4455,7 +4542,7 @@ int asCBuilder::CreateVirtualFunction(asCScriptFunction *func, int idx)
 	return vf->id;
 }
 
-asCObjectProperty *asCBuilder::AddPropertyToClass(sClassDeclaration *decl, const asCString &name, const asCDataType &dt, bool isPrivate, bool isProtected, bool isInherited, asCScriptCode *file, asCScriptNode *node)
+asCObjectProperty *asCBuilder::AddPropertyToClass(sClassDeclaration *decl, const asCString &name, const asCDataType &dt, bool isPrivate, bool isProtected, bool isInherited, asCScriptCode *file, asCScriptNode *node, bool isIndirect)
 {
 	if( node )
 	{
@@ -4499,7 +4586,7 @@ asCObjectProperty *asCBuilder::AddPropertyToClass(sClassDeclaration *decl, const
 	}
 
 	// Add the property to the object type
-	return CastToObjectType(decl->typeInfo)->AddPropertyToClass(name, dt, isPrivate, isProtected, isInherited);
+	return CastToObjectType(decl->typeInfo)->AddPropertyToClass(name, dt, isPrivate, isProtected, isInherited, isIndirect);
 }
 
 bool asCBuilder::DoesMethodExist(asCObjectType *objType, int methodId, asUINT *methodIndex)
@@ -5950,6 +6037,7 @@ void asCBuilder::GetObjectMethodDescriptions(const char *name, asCObjectType *ob
 {
 	asASSERT(objectType);
 
+	bool doHack = false;
 	if( scope != "" )
 	{
 		// If searching with a scope informed, then the node and script must also be informed for potential error reporting
@@ -5976,16 +6064,19 @@ void asCBuilder::GetObjectMethodDescriptions(const char *name, asCObjectType *ob
 				return;
 		}
 
-		// Find the base class with the specified scope
-		while (objectType)
-		{
-			// If the name and namespace matches it is the correct class. If no
-			// specific namespace was given, then don't compare the namespace
-			if (objectType->name == className && (ns == 0 || objectType->nameSpace == ns))
-				break;
+		if (objectType->derivedFrom && objectType->derivedFrom->beh.instantiateFromScript && objectType->derivedFrom->name == className)
+			doHack = true;
+		else
+			// Find the base class with the specified scope
+			while (objectType)
+			{
+				// If the name and namespace matches it is the correct class. If no
+				// specific namespace was given, then don't compare the namespace
+				if (objectType->name == className && (ns == 0 || objectType->nameSpace == ns))
+					break;
 
-			objectType = objectType->derivedFrom;
-		}
+				objectType = objectType->derivedFrom;
+			}
 
 		// If the scope is not any of the base classes, then return no methods
 		if( objectType == 0 )
@@ -6007,9 +6098,10 @@ void asCBuilder::GetObjectMethodDescriptions(const char *name, asCObjectType *ob
 			else
 			{
 				asCScriptFunction *f = engine->scriptFunctions[objectType->methods[n]];
-				if( f && f->funcType == asFUNC_VIRTUAL )
+				asCScriptFunction *f2 = f;
+				if( !doHack && f && f->funcType == asFUNC_VIRTUAL )
 					f = objectType->virtualFunctionTable[f->vfTableIdx];
-				methods.PushLast(f->id);
+				methods.PushLast(f->id | ((f == f2) * FUNC_VIRT_NOLOOKUP));
 			}
 		}
 	}

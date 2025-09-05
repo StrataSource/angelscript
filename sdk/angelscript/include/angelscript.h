@@ -35,6 +35,7 @@
 // The script engine interface
 //
 
+#pragma once
 
 #ifndef ANGELSCRIPT_H
 #define ANGELSCRIPT_H
@@ -292,6 +293,9 @@ enum asEBehaviours
 	 asBEHAVE_ENUMREFS,
 	 asBEHAVE_RELEASEREFS,
 	asBEHAVE_LAST_GC = asBEHAVE_RELEASEREFS,
+
+	asBEHAVE_INSTANTIATE_DERIVED_FROM_SCRIPT,
+	asBEHAVE_RETRIEVE_OWNING_SCRIPT_INSTANCE,
 
 	asBEHAVE_MAX
 };
@@ -938,6 +942,7 @@ public:
 	virtual int             PushState() = 0;
 	virtual int             PopState() = 0;
 	virtual bool            IsNested(asUINT *nestCount = nullptr) const = 0;
+	virtual bool			CallBaseVirtual() = 0; // this gets cleared on call!
 
 	// Object pointer for calling class methods
 	virtual int   SetObject(void *obj) = 0;
@@ -1129,6 +1134,8 @@ public:
 	virtual asIScriptFunction *GetMethodByName(const char *name, bool getVirtual = true) const = 0;
 	virtual asIScriptFunction *GetMethodByDecl(const char *decl, bool getVirtual = true) const = 0;
 
+	asIScriptFunction *GetMethodByDeclIfFromCurrentType( const char *decl ) const;
+
 	// Properties
 	virtual asUINT      GetPropertyCount() const = 0;
 	virtual int         GetProperty(asUINT index, const char **name, int *typeId = nullptr, bool *isPrivate = nullptr, bool *isProtected = nullptr, int *offset = nullptr, bool *isReference = nullptr, asDWORD *accessMask = nullptr, int *compositeOffset = nullptr, bool *isCompositeIndirect = nullptr, bool *isConst = nullptr) const = 0;
@@ -1243,6 +1250,16 @@ public:
 protected:
 	virtual ~asIScriptFunction() = default;
 };
+
+inline asIScriptFunction *asITypeInfo::GetMethodByDeclIfFromCurrentType( const char *decl ) const
+{
+	auto f = GetMethodByDecl( decl );
+	if ( !f )
+		return nullptr;
+	if ( f->GetObjectType() != this )
+		return nullptr;
+	return f;
+}
 
 class asIBinaryStream
 {

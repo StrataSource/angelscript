@@ -71,6 +71,7 @@ public:
 	int             PushState();
 	int             PopState();
 	bool            IsNested(asUINT *nestCount = 0) const;
+	bool			CallBaseVirtual();
 
 	// Object pointer for calling class methods
 	int SetObject(void *obj);
@@ -172,7 +173,7 @@ public:
 	int  PushCallState();
 	void PopCallState();
 	void CallScriptFunction(asCScriptFunction *func);
-	void CallInterfaceMethod(asCScriptFunction *func);
+	void CallInterfaceMethod(asCScriptFunction *func, bool noVirtLookup = false);
 	void PrepareScriptFunction();
 
 	void SetProgramPointer();
@@ -245,6 +246,8 @@ public:
 
 	// Registers available to JIT compiler functions
 	asSVMRegisters m_regs;
+
+	bool m_callBaseVirtual;
 };
 
 // We need at least 2 PTRs on the stack reserved for exception handling

@@ -56,6 +56,7 @@ public:
 
 protected:
 	friend class asCScriptEngine;
+	friend class asCCompiler;
 
 	asCTokenizer();
 	~asCTokenizer();
@@ -75,6 +76,8 @@ protected:
 	const asCScriptEngine *engine;
 
 	const sTokenWord **keywordTable[256];
+
+	bool allowDollarIdentifier;
 };
 
 END_AS_NAMESPACE

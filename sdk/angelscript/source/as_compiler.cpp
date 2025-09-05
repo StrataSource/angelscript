@@ -91,6 +91,7 @@ asCCompiler::asCCompiler(asCScriptEngine *engine) : byteCode(engine)
 	isProcessingDeferredParams = false;
 	isCompilingDefaultArg = false;
 	noCodeOutput = 0;
+	allowBehaviourSymbol = false;
 }
 
 asCCompiler::~asCCompiler()
@@ -161,7 +162,7 @@ int asCCompiler::CompileDefaultCopyConstructor(asCBuilder* in_builder, asCScript
 	CompileMemberInitializationCopy(&byteCode);
 
 	// If the class is derived from another, then the base class' copy constructor must be called
-	if (outFunc->objectType->derivedFrom)
+	if (outFunc->objectType->derivedFrom && outFunc->objectType->derivedFrom->flags & asOBJ_SCRIPT_OBJECT)
 	{
 		if (outFunc->objectType->derivedFrom->beh.copyconstruct)
 		{
@@ -283,14 +284,47 @@ int asCCompiler::CompileDefaultConstructor(asCBuilder *in_builder, asCScriptCode
 	// If the class is derived from another, then the base class' default constructor must be called
 	if( outFunc->objectType->derivedFrom )
 	{
-		// Make sure the base class really has a default constructor
-		if( outFunc->objectType->derivedFrom->beh.construct == 0 )
-			Error(TXT_BASE_DOESNT_HAVE_DEF_CONSTR, in_node);
+		if( !(outFunc->objectType->derivedFrom->flags & asOBJ_SCRIPT_OBJECT) && outFunc->objectType->derivedFrom->beh.instantiateFromScript != 0 )
+		{
+			asCObjectProperty* prop = outFunc->objectType->nativeObjectProperty;
+			asASSERT( prop != nullptr );
+			asCParser parser(builder);
+			asCScriptCode code;
+			code.SetCode("__internal__", "= $beh14(this);", true);
+			alignas(asCScriptNode) char hack[sizeof(asCScriptNode)];
+			auto node = new (hack) asCScriptNode(snUndefined);
+			engine->tok.allowDollarIdentifier = true;
+			parser.ParseVarInit(&code, node);
+			engine->tok.allowDollarIdentifier = false;
+			auto* initNode = parser.GetScriptNode();
 
-		// Call the base class' default constructor
-		byteCode.InstrSHORT(asBC_PSF, 0);
-		byteCode.Instr(asBC_RDSPtr);
-		byteCode.Call(asBC_CALL, outFunc->objectType->derivedFrom->beh.construct, AS_PTR_SIZE);
+			// Temporarily set the script that is being compiled to where the member initialization is declared.
+			// The script can be different when including mixin classes from a different script section
+			asCScriptCode *origScript = script;
+			script = &code;
+
+			// Compile the initialization
+			asQWORD constantValue;
+			asCByteCode bcInit(engine);
+			allowBehaviourSymbol = true;
+			CompileInitialization(initNode, &bcInit, prop->type, node, prop->byteOffset, &constantValue, asVGM_MEMBER);
+			allowBehaviourSymbol = false;
+			bcInit.OptimizeLocally(tempVariableOffsets);
+			byteCode.AddCode(&bcInit);
+
+			script = origScript;
+		}
+		else
+		{
+			// Make sure the base class really has a default constructor
+			if( outFunc->objectType->derivedFrom->beh.construct == 0 )
+				Error(TXT_BASE_DOESNT_HAVE_DEF_CONSTR, in_node);
+	
+			// Call the base class' default constructor
+			byteCode.InstrSHORT(asBC_PSF, 0);
+			byteCode.Instr(asBC_RDSPtr);
+			byteCode.Call(asBC_CALL, outFunc->objectType->derivedFrom->beh.construct, AS_PTR_SIZE);
+		}
 	}
 
 	// Initialize the class members that explicit expressions afterwards. This allow the expressions
@@ -2302,7 +2336,7 @@ int asCCompiler::PrepareFunctionCall(int funcId, asCByteCode *bc, asCArray<asCEx
 
 	// If the function being called is the opAssign or copy constructor for the same type
 	// as the argument, then we should avoid making temporary copy of the argument
-	bool makingCopy = false;
+	bool makingCopy = allowBehaviourSymbol && descr->name == "$beh14";
 	if( descr->parameterTypes.GetLength() == 1 &&
 		descr->parameterTypes[0].IsEqualExceptRefAndConst(args[0]->type.dataType) &&
 		(((descr->name == "opAssign" || descr->name == "$beh0") && descr->objectType && descr->objectType == args[0]->type.dataType.GetTypeInfo()) ||
@@ -7110,6 +7144,21 @@ bool asCCompiler::CompileRefCast(asCExprContext *ctx, const asCDataType &to, boo
 		// Filter the list by constness to remove const methods if there are matching non-const methods
 		FilterConst(ops, !isConst);
 
+		if (ops.GetLength() == 0)
+		{
+			// use fancy cast through behaviour that doesn't need to respect constness
+			auto t = ot;
+			while (t)
+			{
+				if (t->beh.retrieveOwningScriptInstance)
+				{
+					ops.PushLast(t->beh.retrieveOwningScriptInstance);
+					break;
+				}
+				t = t->derivedFrom;
+			}
+		}
+
 		// If there is multiple matches, then pick the most appropriate one
 		if (ops.GetLength() > 1)
 		{
@@ -8160,6 +8209,42 @@ asUINT asCCompiler::ImplicitConvObjectRef(asCExprContext *ctx, const asCDataType
 		// If the to type is a class and the from type derives from it, then we can convert it immediately
 		else if( ctx->type.dataType.GetTypeInfo()->DerivesFrom(to.GetTypeInfo()) )
 		{
+			auto ot = CastToObjectType(ctx->type.dataType.GetTypeInfo());
+			auto ot2 = CastToObjectType(to.GetTypeInfo());
+			if( generateCode )
+			{
+				if( ot->nativeObjectProperty && !ot2->nativeObjectProperty && !to.GetTypeInfo()->DerivesFrom(ot->nativeObjectProperty->type.GetTypeInfo()) )
+				{
+					asCObjectProperty *prop = ot->nativeObjectProperty;
+					asASSERT( prop );
+
+					if( !ctx->type.isVariable )
+					{
+						Dereference(ctx, true);
+						ConvertToVariable(ctx);
+					}
+
+					ctx->bc.Instr(asBC_PopPtr);
+
+					// Call the cast operator
+					ctx->bc.InstrSHORT(asBC_PSF, (short)ctx->type.stackOffset);
+					ctx->bc.Instr(asBC_RDSPtr);
+
+					// Adjust the pointer for composite member
+					// This must always be done even if the offset is 0 because the asCWriter needs the meta data in ADDSi to identify the composite property
+					if( prop->compositeOffset || prop->isCompositeIndirect )
+						ctx->bc.InstrSHORT_DW(asBC_ADDSi, (short)prop->compositeOffset, engine->GetTypeIdFromDataType(asCDataType::CreateType(to.GetTypeInfo(), false)));
+					if (prop->isCompositeIndirect)
+						ctx->bc.Instr(asBC_RDSPtr);
+
+					// Put the offset on the stack
+					// This must always be done even if the offset is 0 so the type info is stored
+					ctx->bc.InstrSHORT_DW(asBC_ADDSi, (short)prop->byteOffset, engine->GetTypeIdFromDataType(asCDataType::CreateType(to.GetTypeInfo(), false)));
+
+					if( prop->type.IsReference() )
+						ctx->bc.Instr(asBC_RDSPtr);
+				}
+			}
 			ctx->type.dataType.SetTypeInfo(to.GetTypeInfo());
 			return asCC_REF_CONV;
 		}
@@ -10962,6 +11047,24 @@ asCCompiler::SYMBOLTYPE asCCompiler::SymbolLookupMember(const asCString &name, a
 		}
 	}
 
+	if (allowBehaviourSymbol)
+	{
+		asASSERT(name == "$beh14"); // since this is basically hack to access instantiateFromScript id, just shortcut it
+		outResult->type.SetUndefinedFuncHandle(engine);
+		outResult->methodName = name;
+		return SL_BEHAVIOUR;
+		/*for (asUINT i = 0, c = ot->GetBehaviourCount(); i < c; i++)
+		{
+			auto f = static_cast<asCScriptFunction*>(ot->GetBehaviourByIndex(i, nullptr));
+			if (f->name == name)
+			{
+				outResult->type.SetUndefinedFuncHandle(engine);
+				outResult->methodName = name;
+				return SL_BEHAVIOUR;
+			}
+		}*/
+	}
+
 	return SL_NOMATCH;
 }
 
@@ -11080,6 +11183,15 @@ asCCompiler::SYMBOLTYPE asCCompiler::SymbolLookup(const asCString &name, const a
 				asCObjectType* ot = outFunc->objectType;
 				while (ot)
 				{
+					if (ot->derivedFrom && ot->derivedFrom->beh.instantiateFromScript && ot->derivedFrom->name == typeName) // if we want base class we derive from, search in the type returned from special behaviour
+					{
+						SYMBOLTYPE r = SymbolLookupMember(name, ot->derivedFromNative, outResult);
+						if (r != 0)
+						{
+							outResult->type.dataType.SetTypeInfo(ot);
+							return r;
+						}
+					}
 					if (ot->name == typeName)
 					{
 						SYMBOLTYPE r = SymbolLookupMember(name, ot, outResult);
@@ -11686,7 +11798,7 @@ int asCCompiler::CompileVariableAccess(const asCString &name, const asCString &s
 		}
 	}
 
-	if (symbolType == SL_GLOBALCONST || symbolType == SL_GLOBALPROPACCESS || symbolType == SL_GLOBALVAR || symbolType == SL_GLOBALFUNC || symbolType == SL_ENUMVAL)
+	if (symbolType == SL_GLOBALCONST || symbolType == SL_GLOBALPROPACCESS || symbolType == SL_GLOBALVAR || symbolType == SL_GLOBALFUNC || symbolType == SL_ENUMVAL || symbolType == SL_BEHAVIOUR)
 	{
 		// Get the namespace from SymbolLookup
 		asSNameSpace *ns = lookupResult.symbolNamespace;
@@ -11866,6 +11978,13 @@ int asCCompiler::CompileVariableAccess(const asCString &name, const asCString &s
 				ctx->type.SetConstantDW(dt, asDWORD(value));
 			else
 				ctx->type.SetConstantQW(dt, value);
+			return 0;
+		}
+
+		if (symbolType == SL_BEHAVIOUR)
+		{
+			ctx->type = lookupResult.type;
+			ctx->methodName = name;
 			return 0;
 		}
 	}
@@ -13324,6 +13443,23 @@ int asCCompiler::CompileFunctionCall(asCScriptNode *node, asCExprContext *ctx, a
 			return CompileConstructCall(node, ctx);
 	}
 
+	if (symbolType == SL_BEHAVIOUR)
+	{
+		asASSERT(outFunc->objectType->derivedFrom); // since this is basically hack to access instantiateFromScript id, just shortcut it
+		asASSERT(outFunc->objectType->derivedFrom->beh.instantiateFromScript != 0);
+		asASSERT(name == "$beh14");
+		funcs.PushLast(outFunc->objectType->derivedFrom->beh.instantiateFromScript);
+		/*for (asUINT i = 0, c = outFunc->objectType->GetBehaviourCount(); i < c; i++)
+		{
+			auto f = static_cast<asCScriptFunction*>(outFunc->objectType->GetBehaviourByIndex(i, nullptr));
+			if (f->name == name)
+			{
+				funcs.PushLast(f->id);
+				break;
+			}
+		}*/
+	}
+
 	// Compile the arguments
 	asCArray<asCExprContext *> args;
 	asCArray<asSNamedArgument> namedArgs;
@@ -14704,7 +14840,7 @@ int asCCompiler::CompileExpressionPostOp(asCScriptNode *node, asCExprContext *ct
 				if( prop )
 				{
 					// Is the property access allowed?
-					if( (prop->isPrivate || prop->isProtected) && (!outFunc || outFunc->objectType != ctx->type.dataType.GetTypeInfo()) )
+					if ((prop->isPrivate || prop->isProtected) && (!outFunc || outFunc->objectType != ctx->type.dataType.GetTypeInfo() || (CastToObjectType(ctx->type.dataType.GetTypeInfo())->beh.instantiateFromScript && prop->name == "__native__")))
 					{
 						asCString msg;
 						if( prop->isPrivate )
@@ -17809,7 +17945,7 @@ void asCCompiler::PerformFunctionCall(int funcId, asCExprContext *ctx, bool isCo
 			ctx->bc.Call(asBC_CALLBND, descr->id, argSize);
 		// TODO: Maybe we need two different byte codes
 		else if (descr->funcType == asFUNC_INTERFACE || descr->funcType == asFUNC_VIRTUAL)
-			ctx->bc.Call(asBC_CALLINTF, descr->id, argSize);
+			ctx->bc.Call(asBC_CALLINTF, funcId, argSize);
 		else if (descr->funcType == asFUNC_SCRIPT)
 			ctx->bc.Call(asBC_CALL, descr->id, argSize);
 		else if (descr->funcType == asFUNC_SYSTEM)

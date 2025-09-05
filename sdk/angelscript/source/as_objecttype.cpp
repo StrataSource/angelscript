@@ -48,6 +48,8 @@ BEGIN_AS_NAMESPACE
 asCObjectType::asCObjectType() : asCTypeInfo()
 {
 	derivedFrom = 0;
+	derivedFromNative = 0;
+	nativeObjectProperty = 0;
 
 	acceptValueSubType = true;
 	acceptRefSubType   = true;
@@ -60,6 +62,8 @@ asCObjectType::asCObjectType() : asCTypeInfo()
 asCObjectType::asCObjectType(asCScriptEngine *in_engine) : asCTypeInfo(in_engine)
 {
 	derivedFrom  = 0;
+	derivedFromNative = 0;
+	nativeObjectProperty = 0;
 
 	acceptValueSubType = true;
 	acceptRefSubType = true;
@@ -408,6 +412,8 @@ asUINT asCObjectType::GetBehaviourCount() const
 	if( beh.templateCallback )       count++;
 	if( beh.listFactory )            count++;
 	if( beh.getWeakRefFlag )         count++;
+	if( beh.instantiateFromScript )  count++;
+	if( beh.retrieveOwningScriptInstance )  count++;
 
 	count += (asUINT)beh.constructors.GetLength();
 
@@ -494,8 +500,18 @@ asIScriptFunction *asCObjectType::GetBehaviourByIndex(asUINT index, asEBehaviour
 		return engine->scriptFunctions[beh.getWeakRefFlag];
 	}
 
-	// For reference types, the factories are also stored in the constructor
-	// list, so it is sufficient to enumerate only those
+	if( beh.instantiateFromScript && count++ == index )
+	{
+		if( outBehaviour ) *outBehaviour = asBEHAVE_INSTANTIATE_DERIVED_FROM_SCRIPT;
+		return engine->scriptFunctions[beh.instantiateFromScript];
+	}
+
+	if( beh.retrieveOwningScriptInstance && count++ == index )
+	{
+		if( outBehaviour ) *outBehaviour = asBEHAVE_RETRIEVE_OWNING_SCRIPT_INSTANCE;
+		return engine->scriptFunctions[beh.retrieveOwningScriptInstance];
+	}
+
 	if( index - count < beh.constructors.GetLength() )
 	{
 		if( outBehaviour ) *outBehaviour = asBEHAVE_CONSTRUCT;
@@ -516,7 +532,7 @@ asIScriptFunction *asCObjectType::GetBehaviourByIndex(asUINT index, asEBehaviour
 }
 
 // internal
-asCObjectProperty *asCObjectType::AddPropertyToClass(const asCString &propName, const asCDataType &dt, bool isPrivate, bool isProtected, bool isInherited)
+asCObjectProperty *asCObjectType::AddPropertyToClass(const asCString &propName, const asCDataType &dt, bool isPrivate, bool isProtected, bool isInherited, bool isIndirect)
 {
 	asASSERT( flags & asOBJ_SCRIPT_OBJECT );
 	asASSERT( dt.CanBeInstantiated() );
@@ -576,8 +592,9 @@ asCObjectProperty *asCObjectType::AddPropertyToClass(const asCString &propName, 
 	asASSERT((size % alignment) == 0);
 #endif
 
-	prop->byteOffset = size;
-	size += propSize;
+	prop->byteOffset = size; // this gets rewritten when isIndirect is true
+	if( !isIndirect )
+		size += propSize;
 
 	properties.PushLast(prop);
 
@@ -677,6 +694,13 @@ void asCObjectType::ReleaseAllFunctions()
 	}
 	virtualFunctionTable.SetLength(0);
 
+	for( asUINT d = 0; d < nativeJumpTableFunctions.GetLength(); d++ )
+	{
+		if( nativeJumpTableFunctions[d] )
+			nativeJumpTableFunctions[d]->ReleaseInternal();
+	}
+	nativeJumpTableFunctions.SetLength(0);
+
 	// GC behaviours
 	if( beh.addref )
 		engine->scriptFunctions[beh.addref]->ReleaseInternal();
@@ -709,6 +733,14 @@ void asCObjectType::ReleaseAllFunctions()
 	if ( beh.getWeakRefFlag )
 		engine->scriptFunctions[beh.getWeakRefFlag]->ReleaseInternal();
 	beh.getWeakRefFlag = 0;
+
+	if ( beh.instantiateFromScript )
+		engine->scriptFunctions[beh.instantiateFromScript]->ReleaseInternal();
+	beh.instantiateFromScript = 0;
+
+	if ( beh.retrieveOwningScriptInstance )
+		engine->scriptFunctions[beh.retrieveOwningScriptInstance]->ReleaseInternal();
+	beh.retrieveOwningScriptInstance = 0;
 }
 
 END_AS_NAMESPACE

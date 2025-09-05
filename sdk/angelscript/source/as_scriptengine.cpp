@@ -1574,6 +1574,7 @@ asCString asCScriptEngine::GetFunctionDeclaration(int funcId)
 // internal
 asCScriptFunction *asCScriptEngine::GetScriptFunction(int funcId) const
 {
+	funcId &= ~FUNC_VIRT_NOLOOKUP;
 	if( funcId < 0 || funcId >= (int)scriptFunctions.GetLength() )
 		return 0;
 
@@ -2203,7 +2204,8 @@ int asCScriptEngine::RegisterBehaviourToObjectType(asCObjectType *objectType, as
 	asSSystemFunctionInterface internal;
 	bool isMethod = !(behaviour == asBEHAVE_FACTORY ||
 		              behaviour == asBEHAVE_LIST_FACTORY ||
-		              behaviour == asBEHAVE_TEMPLATE_CALLBACK);
+		              behaviour == asBEHAVE_TEMPLATE_CALLBACK ||
+                      behaviour == asBEHAVE_INSTANTIATE_DERIVED_FROM_SCRIPT);
 	int r = DetectCallingConvention(isMethod, funcPointer, callConv, auxiliary, &internal);
 	if( r < 0 )
 		return ConfigError(r, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
@@ -2251,7 +2253,7 @@ int asCScriptEngine::RegisterBehaviourToObjectType(asCObjectType *objectType, as
 	}
 	func.name.Format("$beh%d", behaviour);
 
-	if( behaviour != asBEHAVE_FACTORY && behaviour != asBEHAVE_LIST_FACTORY )
+	if( behaviour != asBEHAVE_FACTORY && behaviour != asBEHAVE_LIST_FACTORY && behaviour != asBEHAVE_INSTANTIATE_DERIVED_FROM_SCRIPT )
 	{
 		func.objectType = objectType;
 		func.objectType->AddRefInternal();
@@ -2670,6 +2672,50 @@ int asCScriptEngine::RegisterBehaviourToObjectType(asCObjectType *objectType, as
 
 		func.id = beh->getWeakRefFlag = AddBehaviourFunction(func, internal);
 	}
+	else if ( behaviour == asBEHAVE_INSTANTIATE_DERIVED_FROM_SCRIPT )
+	{
+		// This behaviour is only allowed for reference types
+		if( !(objectType->flags & asOBJ_REF) )
+		{
+			WriteMessage("", 0, 0, asMSGTYPE_ERROR, TXT_ILLEGAL_BEHAVIOUR_FOR_TYPE);
+			return ConfigError(asILLEGAL_BEHAVIOUR_FOR_TYPE, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
+		}
+
+		// Verify that the return type is a reference to our type or type derived from us
+		if( !func.returnType.IsObjectHandle() || !func.returnType.GetTypeInfo()->DerivesFrom(objectType) )
+			return ConfigError(asINVALID_DECLARATION, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
+
+		// Verify that there is single ?&in parameter
+		if( func.parameterTypes.GetLength() != 1 || !func.parameterTypes[0].IsAnyType() || func.inOutFlags[0] != asTM_INREF )
+			return ConfigError(asINVALID_DECLARATION, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
+
+		if( beh->instantiateFromScript )
+			return ConfigError(asALREADY_REGISTERED, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
+
+		func.id = beh->instantiateFromScript = AddBehaviourFunction(func, internal);
+	}
+	else if ( behaviour == asBEHAVE_RETRIEVE_OWNING_SCRIPT_INSTANCE )
+	{
+		// This behaviour is only allowed for reference types
+		if( !(objectType->flags & asOBJ_REF) )
+		{
+			WriteMessage("", 0, 0, asMSGTYPE_ERROR, TXT_ILLEGAL_BEHAVIOUR_FOR_TYPE);
+			return ConfigError(asILLEGAL_BEHAVIOUR_FOR_TYPE, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
+		}
+
+		// Verify that the return type is void
+		if( func.returnType.GetTokenType() != ttVoid )
+			return ConfigError(asINVALID_DECLARATION, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
+
+		// Verify that there is single ?&out parameter
+		if( func.parameterTypes.GetLength() != 1 || !func.parameterTypes[0].IsAnyType() || func.inOutFlags[0] != asTM_OUTREF )
+			return ConfigError(asINVALID_DECLARATION, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
+
+		if( beh->retrieveOwningScriptInstance )
+			return ConfigError(asALREADY_REGISTERED, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
+
+		func.id = beh->retrieveOwningScriptInstance = AddBehaviourFunction(func, internal);
+	}
 	else
 	{
 		asASSERT(false);
@@ -3031,7 +3077,7 @@ int asCScriptEngine::RegisterMethodToObjectType(asCObjectType *objectType, const
 	func->objectType->AddRefInternal();
 
 	asCBuilder bld(this, 0);
-	r = bld.ParseFunctionDeclaration(func->objectType, declaration, func, true, &newInterface->paramAutoHandles, &newInterface->returnAutoHandle);
+	r = bld.ParseFunctionDeclaration(func->objectType, declaration, func, true, &newInterface->paramAutoHandles, &newInterface->returnAutoHandle, nullptr, nullptr, nullptr, true);
 	if( r < 0 )
 	{
 		// Set as dummy function before deleting
@@ -3077,6 +3123,7 @@ int asCScriptEngine::RegisterMethodToObjectType(asCObjectType *objectType, const
 			return ConfigError(asINVALID_DECLARATION, "RegisterObjectMethod", objectType->name.AddressOf(), declaration);
 	}
 	
+	int foundId = -1;
 	// Check against duplicate methods
 	if( func->name == "opConv" || func->name == "opImplConv" || func->name == "opCast" || func->name == "opImplCast" )
 	{
@@ -3101,6 +3148,12 @@ int asCScriptEngine::RegisterMethodToObjectType(asCObjectType *objectType, const
 			if( f->name == func->name &&
 				f->IsSignatureExceptNameAndReturnTypeEqual(func) )
 			{
+				if( func->objectType != f->objectType && func->returnType == f->returnType ) // allow derived script type to override the method
+				{
+					f->ReleaseInternal();
+					foundId = static_cast<int>(n);
+					break;
+				}
 				func->funcType = asFUNC_DUMMY;
 				asDELETE(func,asCScriptFunction);
 				return ConfigError(asALREADY_REGISTERED, "RegisterObjectMethod", objectType->name.AddressOf(), declaration);
@@ -3109,7 +3162,10 @@ int asCScriptEngine::RegisterMethodToObjectType(asCObjectType *objectType, const
 	}
 
 	func->id = GetNextScriptFunctionId();
-	func->objectType->methods.PushLast(func->id);
+	if( foundId != -1 )
+		func->objectType->methods[foundId] = func->id;
+	else
+		func->objectType->methods.PushLast(func->id);
 	func->accessMask = defaultAccessMask;
 	AddScriptFunction(func);
 
@@ -6015,6 +6071,7 @@ void asCScriptEngine::AddScriptFunction(asCScriptFunction *func)
 		asASSERT( scriptFunctions[func->id] == 0 || scriptFunctions[func->id] == func );
 		scriptFunctions[func->id] = func;
 	}
+	asASSERT(scriptFunctions.GetLength() < FUNC_VIRT_NOLOOKUP);
 }
 
 void asCScriptEngine::RemoveScriptFunction(asCScriptFunction *func)

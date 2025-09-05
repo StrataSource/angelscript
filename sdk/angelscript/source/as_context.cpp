@@ -199,6 +199,8 @@ asCContext::asCContext(asCScriptEngine *engine, bool holdRef)
 	m_regs.ctx                  = this;
 	m_regs.objectRegister       = 0;
 	m_regs.objectType           = 0;
+
+	m_callBaseVirtual = false;
 }
 
 asCContext::~asCContext()
@@ -235,6 +237,14 @@ bool asCContext::IsNested(asUINT *nestCount) const
 		return true;
 
 	return false;
+}
+
+// interface
+bool asCContext::CallBaseVirtual()
+{
+	bool val = m_callBaseVirtual;
+	m_callBaseVirtual = false;
+	return val;
 }
 
 // interface
@@ -1630,7 +1640,11 @@ asCScriptFunction *asCContext::GetRealFunc(asCScriptFunction * currentFunction, 
 			}
 
 			if( realFunc && realFunc->signatureId == currentFunction->signatureId )
+			{
+				if( realFunc->funcType == asFUNC_VIRTUAL ) // is this correct?
+					m_callBaseVirtual = true;
 				return realFunc;
+			}
 			else
 				SetInternalException(TXT_NULL_POINTER_ACCESS);
 		}
@@ -1678,7 +1692,7 @@ void asCContext::SetProgramPointer()
 		// Set up the internal registers for executing the script function
 		PrepareScriptFunction();
 	}
-	else if( m_currentFunction->funcType == asFUNC_SYSTEM )
+	else if( m_currentFunction->funcType == asFUNC_SYSTEM || m_currentFunction->funcType == asFUNC_VIRTUAL )
 	{
 		asASSERT(m_status != asEXECUTION_DESERIALIZATION);
 
@@ -2141,7 +2155,7 @@ void asCContext::PrepareScriptFunction()
 	}
 }
 
-void asCContext::CallInterfaceMethod(asCScriptFunction *func)
+void asCContext::CallInterfaceMethod(asCScriptFunction *func, bool noVirtLookup)
 {
 	// Resolve the interface method using the current script type
 	asCScriptObject *obj = *(asCScriptObject**)(asPWORD*)m_regs.stackPointer;
@@ -2196,11 +2210,19 @@ void asCContext::CallInterfaceMethod(asCScriptFunction *func)
 	}
 	else // if( func->funcType == asFUNC_VIRTUAL )
 	{
-		realFunc = objType->virtualFunctionTable[func->vfTableIdx];
+		asASSERT( func->funcType == asFUNC_VIRTUAL );
+		realFunc = noVirtLookup ? func : objType->virtualFunctionTable[func->vfTableIdx];
 	}
 
-	// Then call the true script function
-	CallScriptFunction(realFunc);
+	if( realFunc->funcType == asFUNC_VIRTUAL && realFunc->sysFuncIntf )
+	{
+		m_callBaseVirtual = noVirtLookup;
+		CallSystemFunction(realFunc->id, this);
+		m_callBaseVirtual = false; // clean if not read
+	}
+	else
+		// Then call the true script function
+		CallScriptFunction(realFunc);
 }
 
 #if AS_USE_COMPUTED_GOTOS
@@ -3913,7 +3935,7 @@ static const void *const dispatch_table[256] = {
 			m_regs.stackPointer      = l_sp;
 			m_regs.stackFramePointer = l_fp;
 
-			CallInterfaceMethod(m_engine->GetScriptFunction(i));
+			CallInterfaceMethod(m_engine->GetScriptFunction(i), (i & FUNC_VIRT_NOLOOKUP) != 0);
 
 			// Extract the values from the context again
 			l_bc = m_regs.programPointer;

@@ -356,7 +356,7 @@ asCThreadCriticalSection::asCThreadCriticalSection()
 #if defined AS_POSIX_THREADS
 	pthread_mutex_init(&cs, 0);
 #elif defined AS_WINDOWS_THREADS
-#if defined(_MSC_VER) && (WINAPI_FAMILY & WINAPI_FAMILY_PHONE_APP)
+#if defined(_MSC_VER) && (_WIN32_WINNT >= 0x0600)
 	// Only the Ex version is available on Windows Store
 	InitializeCriticalSectionEx(&cs, 4000, 0);
 #else
@@ -412,7 +412,7 @@ asCThreadReadWriteLock::asCThreadReadWriteLock()
 	asASSERT( r == 0 );
 	UNUSED_VAR(r);
 #elif defined AS_WINDOWS_THREADS
-#if defined(_MSC_VER) && (WINAPI_FAMILY & WINAPI_FAMILY_PHONE_APP)
+#if defined(_MSC_VER) && (_WIN32_WINNT >= 0x0600)
 	// Only the Ex versions are available on Windows Store
 
 	// Create a semaphore to allow up to maxReaders simultaneous readers

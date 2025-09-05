@@ -501,7 +501,23 @@ template <typename T>
  #define AS_METHOD_AMBIGUITY_CAST(t) static_cast<t >
 #endif
 
-#define asMETHOD(c,m) asSMethodPtr<sizeof(void (c::*)())>::Convert((void (c::*)())(&c::m))
+#define DEFINE_AS_FUNC_CAST( mod )									\
+template <typename T, typename U, typename R, typename... Args>		\
+inline constexpr auto as_func_cast( R ( U::*func )( Args... ) mod ) \
+{																	\
+	return static_cast<R ( T::* )( Args... ) mod>( func );			\
+}
+
+DEFINE_AS_FUNC_CAST()
+DEFINE_AS_FUNC_CAST( noexcept )
+DEFINE_AS_FUNC_CAST( const )
+DEFINE_AS_FUNC_CAST( const noexcept )
+DEFINE_AS_FUNC_CAST( volatile )
+DEFINE_AS_FUNC_CAST( volatile noexcept )
+
+#undef DEFINE_AS_FUNC_CAST
+
+#define asMETHOD(c,m) asSMethodPtr<sizeof(void (c::*)())>::Convert(as_func_cast<c>(&c::m))
 #define asMETHODPR(c,m,p,r) asSMethodPtr<sizeof(void (c::*)())>::Convert(AS_METHOD_AMBIGUITY_CAST(r (c::*)p)(&c::m))
 
 #else // Class methods are disabled

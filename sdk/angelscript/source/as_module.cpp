@@ -1040,6 +1040,32 @@ int asCModule::RemoveGlobalVar(asUINT index)
 }
 
 // interface
+int asCModule::RegisterGlobalVar(const char *declaration, void *pointer)
+{
+	// Don't accept a null pointer
+	if( pointer == 0 )
+		return m_engine->ConfigError(asINVALID_ARG, "RegisterGlobalVar", declaration, 0);
+
+	asCDataType type;
+	asCString name;
+
+	int r;
+	asCBuilder bld(m_engine, this);
+	if( (r = bld.VerifyProperty(0, declaration, name, type, m_defaultNamespace)) < 0 )
+		return m_engine->ConfigError(r, "RegisterGlobalVar", declaration, 0);
+
+	// Don't allow registering references as global properties
+	if( type.IsReference() )
+		return m_engine->ConfigError(asINVALID_TYPE, "RegisterGlobalVar", declaration, 0);
+
+	// Store the property info
+	asCGlobalProperty *prop = AllocateGlobalProperty( name.AddressOf(), type, m_defaultNamespace );
+	prop->SetRegisteredAddress(pointer);
+
+	return int( m_scriptGlobals.GetSize() );
+}
+
+// interface
 int asCModule::GetGlobalVarIndexByDecl(const char *decl) const
 {
 	asCBuilder bld(m_engine, const_cast<asCModule*>(this));

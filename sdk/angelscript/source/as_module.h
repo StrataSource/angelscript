@@ -129,6 +129,7 @@ public:
 	virtual int         GetGlobalVar(asUINT index, const char **name, const char **nameSpace, int *typeId, bool *isConst) const;
 	virtual void       *GetAddressOfGlobalVar(asUINT index);
 	virtual int         RemoveGlobalVar(asUINT index);
+	virtual int         RegisterGlobalVar(const char *declaration, void *pointer);
 
 	// Type identification
 	virtual asUINT         GetObjectTypeCount() const;

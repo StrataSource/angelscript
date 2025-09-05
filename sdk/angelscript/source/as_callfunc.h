@@ -115,7 +115,7 @@ struct asSSystemFunctionInterface
 	{
 		asCObjectType *ot; // argument type for clean up
 		short op;          // clean up operation: 0 = release, 1 = free, 2 = destruct then free
-		short off;         // argument offset on the stack
+		int off;           // argument offset on the stack
 	};
 	asCArray<SClean>     cleanArgs;
 

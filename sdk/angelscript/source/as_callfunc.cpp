@@ -202,7 +202,7 @@ int PrepareSystemFunctionGeneric(asCScriptFunction *func, asSSystemFunctionInter
 					asSSystemFunctionInterface::SClean clean;
 					clean.op = 0; // call release
 					clean.ot = &engine->functionBehaviours;
-					clean.off = short(offset);
+					clean.off = offset;
 					internal->cleanArgs.PushLast(clean);
 				}
 			}
@@ -221,7 +221,7 @@ int PrepareSystemFunctionGeneric(asCScriptFunction *func, asSSystemFunctionInter
 						asSSystemFunctionInterface::SClean clean;
 						clean.op = 0; // call release
 						clean.ot = CastToObjectType(dt.GetTypeInfo());
-						clean.off = short(offset);
+						clean.off = offset;
 						internal->cleanArgs.PushLast(clean);
 					}
 				}
@@ -231,7 +231,7 @@ int PrepareSystemFunctionGeneric(asCScriptFunction *func, asSSystemFunctionInter
 				asSSystemFunctionInterface::SClean clean;
 				clean.op  = 1; // call free
 				clean.ot  = CastToObjectType(dt.GetTypeInfo());
-				clean.off = short(offset);
+				clean.off = offset;
 
 				// Call the destructor then free the memory
 				asSTypeBehaviour *beh = &CastToObjectType(dt.GetTypeInfo())->beh;
@@ -522,7 +522,7 @@ int PrepareSystemFunction(asCScriptFunction *func, asSSystemFunctionInterface *i
 			asSSystemFunctionInterface::SClean clean;
 			clean.op  = 1; // call free
 			clean.ot  = CastToObjectType(dt.GetTypeInfo());
-			clean.off = short(offset);
+			clean.off = offset;
 
 #ifndef AS_CALLEE_DESTROY_OBJ_BY_VAL
 			// If the called function doesn't destroy objects passed by value we must do so here
@@ -543,7 +543,7 @@ int PrepareSystemFunction(asCScriptFunction *func, asSSystemFunctionInterface *i
 				clean.ot = &engine->functionBehaviours;
 			else
 				clean.ot  = CastToObjectType(dt.GetTypeInfo());
-			clean.off = short(offset);
+			clean.off = offset;
 			internal->cleanArgs.PushLast(clean);
 		}
 

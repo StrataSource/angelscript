@@ -51,7 +51,7 @@ BEGIN_AS_NAMESPACE
 class asCScriptFunction;
 class asCScriptEngine;
 
-class asCContext : public asIScriptContext
+class asCContext final : public asIScriptContext
 {
 public:
 	// Memory management

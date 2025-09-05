@@ -92,7 +92,7 @@ struct sObjectTypePair
 //       then it should simply replace the bytecode within the functions without
 //       changing the values of existing global properties, etc.
 
-class asCModule : public asIScriptModule
+class asCModule final : public asIScriptModule
 {
 //-------------------------------------------
 // Public interface

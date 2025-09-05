@@ -49,7 +49,7 @@ BEGIN_AS_NAMESPACE
 
 class asCThreadLocalData;
 
-class asCThreadManager : public asIThreadManager
+class asCThreadManager final : public asIThreadManager
 {
 public:
 	static asCThreadLocalData *GetLocalData();

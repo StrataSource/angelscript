@@ -51,7 +51,7 @@ class asCObjectType;
 // TODO: Add const overload for GetAddressOfProperty
 
 // TODO: weak: Should move to its own file
-class asCLockableSharedBool : public asILockableSharedBool
+class asCLockableSharedBool final : public asILockableSharedBool
 {
 public:
 	asCLockableSharedBool();
@@ -70,7 +70,7 @@ protected:
 	DECLARECRITICALSECTION(mutable lock)
 };
 
-class asCScriptObject : public asIScriptObject
+class asCScriptObject final : public asIScriptObject
 {
 public:
 //===================================

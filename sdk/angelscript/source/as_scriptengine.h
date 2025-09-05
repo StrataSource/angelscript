@@ -62,7 +62,7 @@ class asCContext;
 // TODO: import: Remove this when import is removed
 struct sBindInfo;
 
-class asCScriptEngine : public asIScriptEngine
+class asCScriptEngine final : public asIScriptEngine
 {
 //=============================================================
 // From asIScriptEngine

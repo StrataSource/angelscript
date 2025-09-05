@@ -83,7 +83,7 @@ struct asSListPatternNode
 	asSListPatternNode     *next;
 };
 
-struct asSListPatternDataTypeNode : public asSListPatternNode
+struct asSListPatternDataTypeNode final : public asSListPatternNode
 {
 	asSListPatternDataTypeNode(const asCDataType &dt) : asSListPatternNode(asLPT_TYPE), dataType(dt) {}
 	asSListPatternNode *Duplicate() { return asNEW(asSListPatternDataTypeNode)(dataType); }
@@ -147,7 +147,7 @@ struct asSSystemFunctionInterface;
 
 void RegisterScriptFunction(asCScriptEngine *engine);
 
-class asCScriptFunction : public asIScriptFunction
+class asCScriptFunction final : public asIScriptFunction
 {
 public:
 	// From asIScriptFunction

@@ -195,7 +195,7 @@ struct asSEnumValue
 	asSEnumValue() : value(0) {}
 };
 
-class asCEnumType : public asCTypeInfo
+class asCEnumType final : public asCTypeInfo
 {
 public:
 	asCEnumType(asCScriptEngine *engine) : asCTypeInfo(engine) {}
@@ -213,7 +213,7 @@ protected:
 	asCEnumType() : asCTypeInfo() {}
 };
 
-class asCTypedefType : public asCTypeInfo
+class asCTypedefType final : public asCTypeInfo
 {
 public:
 	asCTypedefType(asCScriptEngine *engine) : asCTypeInfo(engine) {}
@@ -233,7 +233,7 @@ protected:
 	asCTypedefType() : asCTypeInfo() {}
 };
 
-class asCFuncdefType : public asCTypeInfo
+class asCFuncdefType final : public asCTypeInfo
 {
 public:
 	asCFuncdefType(asCScriptEngine *engine, asCScriptFunction *func);

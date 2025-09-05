@@ -1816,7 +1816,7 @@ asCTypeInfo* asCScriptEngine::GetTemplateSubTypeByName(const asCString &name)
 	return subtype;
 }
 
-int asCScriptEngine::RegisterObjectType(const char *name, int byteSize, asQWORD flags)
+int asCScriptEngine::RegisterObjectType(const char *name, int byteSize, asQWORD flags, const char *base)
 {
 	int r;
 
@@ -1924,6 +1924,8 @@ int asCScriptEngine::RegisterObjectType(const char *name, int byteSize, asQWORD 
 	asCBuilder bld(this, 0);
 	if( flags & asOBJ_TEMPLATE )
 	{
+		if( base )
+			return ConfigError(asINVALID_ARG, "RegisterObjectType", name, base);
 		asCArray<asCString> subtypeNames;
 		r = bld.ParseTemplateDecl(name, &typeName, subtypeNames);
 		if( r < 0 )
@@ -2022,6 +2024,67 @@ int asCScriptEngine::RegisterObjectType(const char *name, int byteSize, asQWORD 
 			registeredObjTypes.PushLast(type);
 
 			currentGroup->types.PushLast(type);
+
+			if( base )
+			{
+				asCDataType dtBase;
+				oldMsgCallback = msgCallback; msgCallback = false;
+				r = bld.ParseDataType(base, &dtBase, defaultNamespace);
+				msgCallback = oldMsgCallback;
+				if( r < 0 )
+					return ConfigError(r, "RegisterObjectType", name, base);
+				auto baseOt = CastToObjectType(dtBase.GetTypeInfo());
+				if( !baseOt || (baseOt->flags & flags) != flags )
+					return ConfigError(asINVALID_TYPE, "RegisterObjectType", name, base);
+
+				type->derivedFrom = baseOt;
+				baseOt->AddRefInternal();
+				type->properties.AllocateNoConstruct(baseOt->properties.GetLength(), false);
+				for( asUINT i = 0, c = baseOt->properties.GetLength(); i < c; ++i )
+				{
+					auto prop = baseOt->properties[i];
+					type->properties.PushLast(asNEW(asCObjectProperty)(*prop));
+					if ( auto t = prop->type.GetTypeInfo() )
+						t->AddRefInternal();
+				}
+
+				type->methods.AllocateNoConstruct(baseOt->methods.GetLength(), false);
+				for( asUINT i = 0, c = baseOt->methods.GetLength(); i < c; ++i )
+				{
+					auto func = scriptFunctions[baseOt->methods[i]];
+					if( func->name == "opConv" || func->name == "opImplConv" ||
+						func->name == "opCast" || func->name == "opImplCast" )
+						continue;
+					type->methods.PushLast(func->id);
+					func->AddRefInternal();
+				}
+
+				type->beh.addref = baseOt->beh.addref;
+				if( type->beh.addref != 0 )
+					scriptFunctions[type->beh.addref]->AddRefInternal();
+				type->beh.release = baseOt->beh.release;
+				if( type->beh.release != 0 )
+					scriptFunctions[type->beh.release]->AddRefInternal();
+				type->beh.gcGetRefCount = baseOt->beh.gcGetRefCount;
+				if( type->beh.gcGetRefCount != 0 )
+					scriptFunctions[type->beh.gcGetRefCount]->AddRefInternal();
+				type->beh.gcSetFlag = baseOt->beh.gcSetFlag;
+				if( type->beh.gcSetFlag != 0 )
+					scriptFunctions[type->beh.gcSetFlag]->AddRefInternal();
+				type->beh.gcGetFlag = baseOt->beh.gcGetFlag;
+				if( type->beh.gcGetFlag != 0 )
+					scriptFunctions[type->beh.gcGetFlag]->AddRefInternal();
+				type->beh.gcEnumReferences = baseOt->beh.gcEnumReferences;
+				if( type->beh.gcEnumReferences != 0 )
+					scriptFunctions[type->beh.gcEnumReferences]->AddRefInternal();
+				type->beh.gcReleaseAllReferences = baseOt->beh.gcReleaseAllReferences;
+				if( type->beh.gcReleaseAllReferences != 0 )
+					scriptFunctions[type->beh.gcReleaseAllReferences]->AddRefInternal();
+				type->beh.getWeakRefFlag = baseOt->beh.getWeakRefFlag;
+				if( type->beh.getWeakRefFlag != 0 )
+					scriptFunctions[type->beh.getWeakRefFlag]->AddRefInternal();
+				// TODO: Should this copy more behaviours?
+			}
 		}
 		else
 		{

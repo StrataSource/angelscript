@@ -717,7 +717,7 @@ public:
 	virtual int    GetGlobalPropertyIndexByDecl(const char *decl) const = 0;
 
 	// Object types
-	virtual int            RegisterObjectType(const char *obj, int byteSize, asQWORD flags) = 0;
+	virtual int            RegisterObjectType(const char *obj, int byteSize, asQWORD flags, const char *base = nullptr) = 0;
 	virtual int            RegisterObjectProperty(const char *obj, const char *declaration, int byteOffset, int compositeOffset = 0, bool isCompositeIndirect = false) = 0;
 	virtual int            RegisterObjectMethod(const char *obj, const char *declaration, const asSFuncPtr &funcPointer, asDWORD callConv, void *auxiliary = nullptr, int compositeOffset = 0, bool isCompositeIndirect = false) = 0;
 	virtual int            RegisterObjectBehaviour(const char *obj, asEBehaviours behaviour, const char *declaration, const asSFuncPtr &funcPointer, asDWORD callConv, void *auxiliary = nullptr, int compositeOffset = 0, bool isCompositeIndirect = false) = 0;

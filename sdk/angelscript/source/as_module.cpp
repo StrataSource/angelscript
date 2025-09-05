@@ -313,7 +313,7 @@ int asCModule::Build()
 
 	m_engine->PrepareEngine();
 
-#ifdef AS_DEBUG
+#ifdef _DEBUG
 	// Verify that there are no unwanted gaps in the scriptFunctions array.
 	for( asUINT n = 1; n < m_engine->scriptFunctions.GetLength(); n++ )
 	{
@@ -1663,7 +1663,7 @@ int asCModule::LoadByteCode(asIBinaryStream *in, bool *wasDebugInfoStripped)
 
 	JITCompile();
 
-#ifdef AS_DEBUG
+#ifdef _DEBUG
 	// Verify that there are no unwanted gaps in the scriptFunctions array.
 	for( asUINT n = 1; n < m_engine->scriptFunctions.GetLength(); n++ )
 	{

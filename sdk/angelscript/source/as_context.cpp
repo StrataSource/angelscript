@@ -83,16 +83,7 @@ public:
 		// It's useful for determining what needs to be optimized.
 		if (!outputDebug) return;
 
-#ifndef __MINGW32__
-		// _mkdir is broken on mingw
-		_mkdir("AS_DEBUG");
-#endif
-		#if _MSC_VER >= 1500 && !defined(AS_MARMALADE)
-			FILE *f;
-			fopen_s(&f, "AS_DEBUG/stats.txt", "wt");
-		#else
-			FILE *f = fopen("AS_DEBUG/stats.txt", "wt");
-		#endif
+		FILE *f = stdout;
 		if( f )
 		{
 			// Output instruction statistics
@@ -123,7 +114,6 @@ public:
 					}
 				}
 			}
-			fclose(f);
 		}
 	}
 
@@ -2306,7 +2296,9 @@ static const void *const dispatch_table[256] = {
 #ifdef AS_DEBUG
 	// Gather statistics on executed bytecode
 	stats.Instr(*(asBYTE*)l_bc, !m_engine->ep.noDebugOutput);
+#endif
 
+#ifdef _DEBUG
 	// Used to verify that the size of the instructions are correct
 	asDWORD *old = l_bc;
 #endif
@@ -5003,7 +4995,7 @@ static const void *const dispatch_table[256] = {
 #endif
 	} // end of switch
 
-#ifdef AS_DEBUG
+#ifdef _DEBUG
 		asDWORD instr = *(asBYTE*)old;
 		if( instr != asBC_JMP && instr != asBC_JMPP && (instr < asBC_JZ || instr > asBC_JNP) && instr != asBC_JLowZ && instr != asBC_JLowNZ &&
 			instr != asBC_CALL && instr != asBC_CALLBND && instr != asBC_CALLINTF && instr != asBC_RET && instr != asBC_ALLOC && instr != asBC_CallPtr &&

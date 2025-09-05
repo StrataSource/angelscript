@@ -242,7 +242,7 @@ void asCMemoryMgr::FreeScriptNode(void *ptr)
 
 	scriptNodePool.PushLast(ptr);
 	
-#ifdef AS_DEBUG
+#ifdef _DEBUG
 	// clear the memory to facilitate identification of use after free
 	memset(ptr, 0xCDCDCDCD, sizeof(asCScriptNode));
 #endif
@@ -274,7 +274,7 @@ void asCMemoryMgr::FreeByteInstruction(void *ptr)
 
 	byteInstructionPool.PushLast(ptr);
 	
-#ifdef AS_DEBUG
+#ifdef _DEBUG
 	// clear the memory to facilitate identification of use after free
 	memset(ptr, 0xCDCDCDCD, sizeof(asCByteInstruction));
 #endif

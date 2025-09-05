@@ -2137,39 +2137,12 @@ void asCByteCode::PostProcess()
 }
 
 #ifdef AS_DEBUG
-void asCByteCode::DebugOutput(const char *name, asCScriptFunction *func)
+void asCByteCode::DebugOutput(asCScriptFunction *func)
 {
 	if (engine->ep.noDebugOutput)
 		return;
 
-#ifndef __MINGW32__
-	// _mkdir is broken on mingw
-	_mkdir("AS_DEBUG");
-#endif
-
-	asCString path = "AS_DEBUG/";
-	path += name;
-
-	// Anonymous functions created from within class methods will contain :: as part of the name
-	// Replace :: with __ to avoid error when creating the file for debug output
-	for (asUINT n = 0; n < path.GetLength(); n++)
-		if (path[n] == ':') path[n] = '_';
-
-#if _MSC_VER >= 1500 && !defined(AS_MARMALADE)
-	FILE *file;
-	fopen_s(&file, path.AddressOf(), "w");
-#else
-	FILE *file = fopen(path.AddressOf(), "w");
-#endif
-
-#if !defined(AS_XENON) && !defined(__MINGW32__)
-	// XBox 360: When running in DVD Emu, no write is allowed
-	// MinGW: As _mkdir is broken, don't assert on file not created if the AS_DEBUG directory doesn't exist
-	asASSERT( file );
-#endif
-
-	if( file == 0 )
-		return;
+	FILE *file = stdout;
 
 	asUINT n;
 
@@ -2479,8 +2452,6 @@ void asCByteCode::DebugOutput(const char *name, asCScriptFunction *func)
 
 		instr = instr->next;
 	}
-
-	fclose(file);
 
 	// If the stackSize is negative then there is something wrong with the 
 	// bytecode, i.e. there is a bug in the compiler or in the optimizer. We 

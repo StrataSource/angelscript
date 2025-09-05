@@ -189,16 +189,7 @@ public:
 protected:
 	void WriteSummary()
 	{
-		// Write the analyzed info into a file for inspection
-		_mkdir("AS_DEBUG");
-		FILE *fp;
-		#if _MSC_VER >= 1500 && !defined(AS_MARMALADE)
-			fopen_s(&fp, "AS_DEBUG/profiling_summary.txt", "wt");
-		#else
-			fp = fopen("AS_DEBUG/profiling_summary.txt", "wt");
-		#endif
-		if( fp == 0 )
-			return;
+		FILE *fp = stdout;
 
 		fprintf(fp, "%-60s %10s %15s %15s %15s %15s\n\n", "Scope", "Count", "Tot time", "Avg time", "Max time", "Min time");
 
@@ -218,8 +209,6 @@ protected:
 
 			map.MovePrev(&cursor, cursor);
 		}
-
-		fclose(fp);
 	}
 
 	double  timeOffset;

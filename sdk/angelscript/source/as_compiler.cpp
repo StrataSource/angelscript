@@ -256,7 +256,7 @@ int asCCompiler::CompileDefaultCopyConstructor(asCBuilder* in_builder, asCScript
 
 #ifdef AS_DEBUG
 	// DEBUG: output byte code
-	byteCode.DebugOutput(("__" + outFunc->objectType->name + "_" + outFunc->name + "__copyconstr.txt").AddressOf(), in_outFunc);
+	byteCode.DebugOutput(in_outFunc);
 #endif
 
 	return 0;
@@ -313,7 +313,7 @@ int asCCompiler::CompileDefaultConstructor(asCBuilder *in_builder, asCScriptCode
 
 #ifdef AS_DEBUG
 	// DEBUG: output byte code
-	byteCode.DebugOutput(("__" + outFunc->objectType->name + "_" + outFunc->name + "__defconstr.txt").AddressOf(), in_outFunc);
+	byteCode.DebugOutput(in_outFunc);
 #endif
 
 	return 0;
@@ -383,14 +383,13 @@ int asCCompiler::CompileFactory(asCBuilder *in_builder, asCScriptCode *in_script
 	// Tell the virtual machine not to clean up parameters on exception
 	outFunc->dontCleanUpOnException = true;
 
-/*
 #ifdef AS_DEBUG
 	// DEBUG: output byte code
 	asCString args;
 	args.Format("%d", outFunc->parameterTypes.GetLength());
-	byteCode.DebugOutput(("__" + outFunc->name + "__factory" + args + ".txt").AddressOf(), engine);
+	byteCode.DebugOutput(outFunc);
 #endif
-*/
+
 	return 0;
 }
 
@@ -960,10 +959,7 @@ int asCCompiler::CompileFunction(asCBuilder *in_builder, asCScriptCode *in_scrip
 
 #ifdef AS_DEBUG
 	// DEBUG: output byte code
-	if( outFunc->objectType )
-		byteCode.DebugOutput(("__" + outFunc->objectType->name + "_" + outFunc->name + ".txt").AddressOf(), in_outFunc);
-	else
-		byteCode.DebugOutput(("__" + outFunc->name + ".txt").AddressOf(), in_outFunc);
+	byteCode.DebugOutput(in_outFunc);
 #endif
 
 	return 0;
@@ -1593,7 +1589,7 @@ int asCCompiler::CompileGlobalVariable(asCBuilder *in_builder, asCScriptCode *in
 
 #ifdef AS_DEBUG
 	// DEBUG: output byte code
-	byteCode.DebugOutput(("___init_" + in_gvar->name + ".txt").AddressOf(), outFunc);
+	byteCode.DebugOutput(outFunc);
 #endif
 
 	return 0;
@@ -2357,7 +2353,7 @@ void asCCompiler::MoveArgsToStack(int funcId, asCByteCode *bc, asCArray<asCExprC
 	if (descr->IsVariadic())
 		offset += 1;
 
-#ifdef AS_DEBUG
+#ifdef _DEBUG
 	// If the function being called is the opAssign or copy constructor for the same type
 	// as the argument, then we should avoid making temporary copy of the argument
 	bool makingCopy = false;
@@ -2381,10 +2377,7 @@ void asCCompiler::MoveArgsToStack(int funcId, asCByteCode *bc, asCArray<asCExprC
 			{
 				if( descr->inOutFlags[realParamIdx] != asTM_INOUTREF && !args[n]->type.isRefSafe )
 				{
-#ifdef AS_DEBUG
-					// This assert is inside AS_DEBUG because of the variable makingCopy which is only defined in debug mode
 					asASSERT( args[n]->type.isVariable || args[n]->type.isTemporary || makingCopy );
-#endif
 
 					if( (args[n]->type.isVariable || args[n]->type.isTemporary) )
 					{
@@ -11656,7 +11649,7 @@ int asCCompiler::CompileVariableAccess(const asCString &name, const asCString &s
 				return -1;
 			}
 
-#if AS_DEBUG
+#ifdef _DEBUG
 			// If it is not a property, it may still be the name of a method which can be used to create delegates
 			asCObjectType *ot = outFunc->objectType;
 			asCScriptFunction *func = 0;

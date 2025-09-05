@@ -84,7 +84,7 @@ public:
 	void PostProcess();
 
 #ifdef AS_DEBUG
-	void DebugOutput(const char *name, asCScriptFunction *func);
+	void DebugOutput(asCScriptFunction *func);
 #endif
 
 	asCByteInstruction *GetFirstInstr();

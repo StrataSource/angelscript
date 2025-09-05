@@ -243,26 +243,26 @@ AS_API asIScriptEngine *asCreateScriptEngine(asDWORD version)
 		return 0;
 
 	// Verify the size of the types
-	asASSERT( sizeof(asBYTE)  == 1 );
-	asASSERT( sizeof(asWORD)  == 2 );
-	asASSERT( sizeof(asDWORD) == 4 );
-	asASSERT( sizeof(asQWORD) == 8 );
-	asASSERT( sizeof(asPWORD) == sizeof(void*) );
+	static_assert( sizeof(asBYTE)  == 1 );
+	static_assert( sizeof(asWORD)  == 2 );
+	static_assert( sizeof(asDWORD) == 4 );
+	static_assert( sizeof(asQWORD) == 8 );
+	static_assert( sizeof(asPWORD) == sizeof(void*) );
 
 	// Verify the boolean type
-	asASSERT( sizeof(bool) == AS_SIZEOF_BOOL );
-	asASSERT( true == VALUE_OF_BOOLEAN_TRUE );
+	static_assert( sizeof(bool) == AS_SIZEOF_BOOL );
+	static_assert( true == VALUE_OF_BOOLEAN_TRUE );
 
 	// Verify endianess
 #ifdef AS_BIG_ENDIAN
-	asDWORD dw = 0x00010203;
-	asQWORD qw = ((asQWORD(0x00010203)<<32)|asQWORD(0x04050607));
+	const asDWORD dw = 0x00010203;
+	const asQWORD qw = ((asQWORD(0x00010203)<<32)|asQWORD(0x04050607));
 #else
-	asDWORD dw = 0x03020100;
+	const asDWORD dw = 0x03020100;
 	// C++ didn't have a standard way of declaring 64bit literal constants until C++11, so
 	// I'm forced to do it like this to avoid compilers warnings when compiling with the full
 	// C++ compliance.
-	asQWORD qw = ((asQWORD(0x07060504)<<32)|asQWORD(0x03020100));
+	const asQWORD qw = ((asQWORD(0x07060504)<<32)|asQWORD(0x03020100));
 #endif
 	asASSERT( memcmp("\x00\x01\x02\x03", &dw, 4) == 0 );
 	asASSERT( memcmp("\x00\x01\x02\x03\x04\x05\x06\x07", &qw, 8) == 0 );

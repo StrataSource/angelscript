@@ -758,6 +758,10 @@ public:
 	virtual asUINT       GetTypedefCount() const = 0;
 	virtual asITypeInfo *GetTypedefByIndex(asUINT index) const = 0;
 
+	// Namespaces
+	virtual asUINT       GetNamespaceCount() const = 0;
+	virtual const char  *GetNamespaceByIndex( asUINT index ) const = 0;
+
 	// Configuration groups
 	virtual int         BeginConfigGroup(const char *groupName) = 0;
 	virtual int         EndConfigGroup() = 0;

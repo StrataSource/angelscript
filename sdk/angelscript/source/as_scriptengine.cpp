@@ -6360,6 +6360,18 @@ asITypeInfo *asCScriptEngine::GetTypedefByIndex(asUINT index) const
 }
 
 // interface
+asUINT asCScriptEngine::GetNamespaceCount() const
+{
+	return asUINT(nameSpaces.GetLength());
+}
+
+// interface
+const char  *asCScriptEngine::GetNamespaceByIndex( asUINT index ) const
+{
+	return nameSpaces[index]->name.AddressOf();
+}
+
+// interface
 int asCScriptEngine::RegisterEnum(const char* typeName, const char* underlyingType)
 {
 	//	Check the name

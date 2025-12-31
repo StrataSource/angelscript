@@ -110,6 +110,7 @@ public:
 	virtual int         CompileFunction(const char *sectionName, const char *code, int lineOffset, asDWORD reserved, asIScriptFunction **outFunc);
 	virtual int         CompileGlobalVar(const char *sectionName, const char *code, int lineOffset);
 	virtual asDWORD     SetAccessMask(asDWORD accessMask);
+	virtual asDWORD		GetAccessMask() const { return m_accessMask; }
 	virtual int         SetDefaultNamespace(const char *nameSpace);
 	virtual const char *GetDefaultNamespace() const;
 

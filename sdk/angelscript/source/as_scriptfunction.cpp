@@ -687,10 +687,10 @@ asCString asCScriptFunction::GetDeclarationStr(bool includeObjectName, bool incl
 	// TODO: default arg: Make the declaration with the default args an option
 
 	// Don't add the return type for constructors and destructors
-	if( !(returnType.GetTokenType() == ttVoid &&
+	if( !((returnType.GetTokenType() == ttVoid &&
 		  objectType &&
-		  (name == objectType->name || (name.GetLength() > 0 && name[0] == '~') ||
-		   name == "$beh0" || name == "$beh2")) )
+		  (name == objectType->name || (name.GetLength() > 0 && name[0] == '~'))) ||
+		   (name.SubString(0,4) == "$beh" && name.GetLength() == 5 && name[4] >= '0' && name[4] <= ('0' + asBEHAVE_LIST_FACTORY)) || name == "$list") )
 	{
 		str = returnType.Format(nameSpace, includeNamespace);
 		str += " ";
@@ -723,6 +723,13 @@ asCString asCScriptFunction::GetDeclarationStr(bool includeObjectName, bool incl
 			str += "~" + objectType->name + "(";
 		else
 			str += name + "(";
+	}
+	else if( name == "$list" )
+	{
+		if( objectType )
+			str += objectType->name + "(";
+		else
+			str += returnType.GetTypeInfo()->name + "(";
 	}
 	else
 	{

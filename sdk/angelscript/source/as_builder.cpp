@@ -749,7 +749,7 @@ void asCBuilder::ParseScripts()
 						break;
 					}
 				}
-				if (engine->ep.alwaysImplDefaultCopy == 2 || decl->isDefaultCopyDeleted ||
+				if (engine->ep.alwaysImplDefaultCopy == 2 || decl->isDefaultCopyDeleted || (ot->derivedFrom && ot->derivedFrom->beh.instantiateFromScript) ||
 					(copyOperatorExists && ot->beh.copy == engine->scriptTypeBehaviours.beh.copy && engine->ep.alwaysImplDefaultCopy == 0))
 				{
 					// Script class has a declared constructor, so remove the default opAssign
@@ -776,7 +776,7 @@ void asCBuilder::ParseScripts()
 						break;
 					}
 				}
-				if ( !decl->isDefaultCopyConstructorDeleted &&
+				if ( (!ot->derivedFrom || !ot->derivedFrom->beh.instantiateFromScript) && !decl->isDefaultCopyConstructorDeleted &&
 					 ((engine->ep.alwaysImplDefaultCopyConstruct == 0 && !copyConstructExists) || engine->ep.alwaysImplDefaultCopyConstruct == 1) )
 					AddDefaultCopyConstructor(ot, decl->script);
 

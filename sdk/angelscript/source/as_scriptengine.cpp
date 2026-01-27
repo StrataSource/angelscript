@@ -2035,7 +2035,10 @@ int asCScriptEngine::RegisterObjectType(const char *name, int byteSize, asQWORD 
 				if( r < 0 )
 					return ConfigError(r, "RegisterObjectType", name, base);
 				auto baseOt = CastToObjectType(dtBase.GetTypeInfo());
-				if( !baseOt || (baseOt->flags & flags) != flags )
+				if( !baseOt )
+					return ConfigError(asINVALID_TYPE, "RegisterObjectType", name, base);
+				const auto flagMask = ~( asOBJ_APP_CLASS_ALLFLOATS | asOBJ_APP_CLASS_ALLINTS | asOBJ_APP_CLASS_MORE_CONSTRUCTORS );
+				if( ( flags & baseOt->flags & flagMask ) != ( baseOt->flags & flagMask ) )
 					return ConfigError(asINVALID_TYPE, "RegisterObjectType", name, base);
 
 				type->derivedFrom = baseOt;

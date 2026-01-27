@@ -3606,27 +3606,26 @@ void asCBuilder::CompileClasses(asUINT numTempl)
 				}
 
 				int id = baseType->methods[m];
-				if( nativeOffset > -1 )
+				if( nativeOffset > -1 && baseFunc->funcType == asFUNC_SYSTEM )
 				{
-					auto func = engine->scriptFunctions[id];
 					asCScriptFunction* vf = asNEW(asCScriptFunction)(engine, module, asFUNC_VIRTUAL);
-					vf->name              = func->name;
-					vf->nameSpace         = func->nameSpace;
-					vf->returnType        = func->returnType;
-					vf->parameterTypes    = func->parameterTypes;
-					vf->inOutFlags        = func->inOutFlags;
+					vf->name              = baseFunc->name;
+					vf->nameSpace         = baseFunc->nameSpace;
+					vf->returnType        = baseFunc->returnType;
+					vf->parameterTypes    = baseFunc->parameterTypes;
+					vf->inOutFlags        = baseFunc->inOutFlags;
 					id = vf->id           = engine->GetNextScriptFunctionId();
-					vf->objectType        = func->objectType;
+					vf->objectType        = baseFunc->objectType;
 					vf->objectType->AddRefInternal();
-					vf->signatureId       = func->signatureId;
+					vf->signatureId       = baseFunc->signatureId;
 					vf->vfTableIdx        = m;
-					vf->traits            = func->traits;
-					vf->sysFuncIntf	      = asNEW(asSSystemFunctionInterface)(*func->sysFuncIntf);
+					vf->traits            = baseFunc->traits;
+					vf->sysFuncIntf	      = asNEW(asSSystemFunctionInterface)(*baseFunc->sysFuncIntf);
 					vf->sysFuncIntf->isCompositeIndirect = true;
 					vf->sysFuncIntf->compositeOffset = nativeOffset;
-					vf->defaultArgs.AllocateNoConstruct(func->defaultArgs.GetLength(), false);
-					for( int i = 0, c = func->defaultArgs.GetLength(); i < c; ++i )
-						if( const asCString *arg = func->defaultArgs[i] )
+					vf->defaultArgs.AllocateNoConstruct(baseFunc->defaultArgs.GetLength(), false);
+					for( int i = 0, c = baseFunc->defaultArgs.GetLength(); i < c; ++i )
+						if( const asCString *arg = baseFunc->defaultArgs[i] )
 							vf->defaultArgs.PushLast(asNEW(asCString)(*arg));
 						else
 							vf->defaultArgs.PushLast(0);

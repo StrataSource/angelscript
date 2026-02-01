@@ -2217,7 +2217,7 @@ void asCContext::CallInterfaceMethod(asCScriptFunction *func, bool noVirtLookup)
 	if( realFunc->funcType == asFUNC_VIRTUAL && realFunc->sysFuncIntf )
 	{
 		m_callBaseVirtual = noVirtLookup;
-		CallSystemFunction(realFunc->id, this);
+		m_regs.stackPointer += CallSystemFunction(realFunc->id, this);
 		m_callBaseVirtual = false; // clean if not read
 	}
 	else

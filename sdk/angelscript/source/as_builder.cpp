@@ -3421,7 +3421,7 @@ void asCBuilder::DetermineTypeRelations()
 					if (auto d = CastToObjectType(decl->typeInfo)->derivedFrom; d != nullptr && d != objType)
 					{
 						asCString str;
-						str.Format(TXT_SHARED_s_DOESNT_MATCH_ORIGINAL, decl->typeInfo->GetName());
+						str.Format(TXT_SHARED_s_DOESNT_MATCH_ORIGINAL_s, decl->typeInfo->GetName(), decl->typeInfo->GetModule() ? decl->typeInfo->GetModule()->GetName() : "");
 						WriteError(str, file, node);
 					}
 					else

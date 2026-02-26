@@ -224,6 +224,82 @@ bool Test()
 	asIScriptModule *mod = 0;
 	asIScriptContext *ctx = 0;
 
+	// Test registering void f(?[]&). Must fail with appropriate error message
+	// Reported by Aleksander Jaronik
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+		RegisterScriptArray(engine, true);
+		r = engine->RegisterGlobalFunction("void func(?[]&)", asFUNCTION(0), asCALL_GENERIC);
+		if (r >= 0)
+			TEST_FAILED;
+		r = engine->RegisterGlobalFunction("void func2(array<?>&)", asFUNCTION(0), asCALL_GENERIC);
+		if (r >= 0)
+			TEST_FAILED;
+		if (bout.buffer != "System function (1, 12) : Error   : Data type can't be '?'\n"
+						   " (0, 0) : Error   : Failed in call to function 'RegisterGlobalFunction' with 'void func(?[]&)' (Code: asINVALID_DECLARATION, -10)\n"
+						   "System function (1, 18) : Error   : Expected data type\n"
+						   "System function (1, 18) : Error   : Instead found '?'\n"
+						   " (0, 0) : Error   : Failed in call to function 'RegisterGlobalFunction' with 'void func2(array<?>&)' (Code: asINVALID_DECLARATION, -10)\n")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+		engine->ShutDownAndRelease();
+	}
+
+	// Test saving and loading bytecode with variadic functions
+	// Reported by Aleksander Jaronik
+	{
+		engine = asCreateScriptEngine();
+		engine->SetEngineProperty(asEP_OPTIMIZE_BYTECODE, 0);
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+		RegisterStdString(engine);
+		engine->RegisterGlobalFunction("void Print(const ?&in ...)", asFUNCTION(0), asCALL_GENERIC);
+		engine->RegisterGlobalFunction("string Format(const ?&in ...)", asFUNCTION(0), asCALL_GENERIC);
+		engine->RegisterObjectMethod("string", "string Mthd(const ?&in ...)", asFUNCTION(0), asCALL_GENERIC);
+		engine->RegisterObjectBehaviour("string", asBEHAVE_CONSTRUCT, "void f(const ?&in ...)", asFUNCTION(0), asCALL_GENERIC);
+		engine->RegisterFuncdef("string CB(const ?&in ...)");
+
+		mod = engine->GetModule("mod", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"void main() \n"
+			"{ \n"
+			"	for (uint i = 0; i < 10; i++) \n"
+			"	{ \n"
+			"		Print(5, 3, 1); \n" // global function
+			"		string s = Format(5, 3, 1); \n" // global function returning object by value
+			"		('a'+'b').Mthd(5, 3, 1); \n" // class method returning object by value
+			"		string t(5, 3, 1); \n" // constructor
+			"		CB @cb = Format; \n"
+			"		cb(5, 3, 1); \n" // function pointer
+			"	} \n"
+			"} \n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		CBytecodeStream stream((std::string("AS_DEBUG/bc_") + (sizeof(void*) == 4 ? "32" : "64")).c_str());
+		r = mod->SaveByteCode(&stream);
+		if (r < 0)
+			TEST_FAILED;
+
+		mod = engine->GetModule("mod2", asGM_ALWAYS_CREATE);
+		r = mod->LoadByteCode(&stream);
+		if (r < 0)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
+
 	// Test behavior of overload when matching function with vartype compared to function with default args
 	// Reported by Aleksander Jaronik
 	{

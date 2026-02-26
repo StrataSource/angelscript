@@ -6035,6 +6035,18 @@ void asCBuilder::GetFunctionDescriptions(const char *name, asCArray<int> &funcs,
 	}
 }
 
+static bool HasClassInBase(asCObjectType *objType, const asCString &className)
+{
+	while( objType )
+	{
+		if( objType->name == className )
+			return true;
+		objType = objType->derivedFrom;
+	}
+
+	return false;
+}
+
 // scope is only informed when looking for a base class' method
 void asCBuilder::GetObjectMethodDescriptions(const char *name, asCObjectType *objectType, asCArray<int> &methods, bool objIsConst, const asCString &scope, asCScriptNode *errNode, asCScriptCode *script)
 {
@@ -6067,8 +6079,8 @@ void asCBuilder::GetObjectMethodDescriptions(const char *name, asCObjectType *ob
 				return;
 		}
 
-		if (objectType->derivedFrom && objectType->derivedFrom->beh.instantiateFromScript && objectType->derivedFrom->name == className)
-			doHack = true;
+		if (objectType->derivedFrom && objectType->derivedFrom->beh.instantiateFromScript && HasClassInBase(objectType->derivedFrom, className))
+			doHack = true; // direct call to any of the base types to the special version of the method that sets up this pointer correctly
 		else
 			// Find the base class with the specified scope
 			while (objectType)

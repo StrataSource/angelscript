@@ -11223,10 +11223,10 @@ asCCompiler::SYMBOLTYPE asCCompiler::SymbolLookup(const asCString &name, const a
 				{
 					if (ot->derivedFrom && ot->derivedFrom->beh.instantiateFromScript && ot->derivedFrom->name == typeName) // if we want base class we derive from, search in the type returned from special behaviour
 					{
-						SYMBOLTYPE r = SymbolLookupMember(name, ot->derivedFromNative, outResult);
+						SYMBOLTYPE r = SymbolLookupMember(name, outFunc->objectType->derivedFromNative, outResult);
 						if (r != 0)
 						{
-							outResult->type.dataType.SetTypeInfo(ot);
+							outResult->type.dataType.SetTypeInfo(outFunc->objectType);
 							return r;
 						}
 					}

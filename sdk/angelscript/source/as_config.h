@@ -1418,7 +1418,11 @@
 	#define DebuggerBreak()		__debugbreak()
 	#define PLATFORM_INTERFACE extern "C" __declspec( dllimport )
 #else
-	#define DebuggerBreak()		__asm__( "int $0x3;")
+	#if defined(__arm__) || defined(__aarch64__)
+		#define DebuggerBreak()		__asm__( "brk #0x1" )
+	#else
+		#define DebuggerBreak()		__asm__( "int $0x3;")
+	#endif
 	#define PLATFORM_INTERFACE extern "C"
 #endif
 PLATFORM_INTERFACE bool IsAssertIgnored(const char* file, int line);

@@ -155,17 +155,17 @@ int asAtomicDec(int &value)
 
 /* old deprecated way of doing it
 END_AS_NAMESPACE
-#include <libkern/OSAtomic.h>
+#include <atomic>
 BEGIN_AS_NAMESPACE
 
 int asAtomicInc(int &value)
 {
-	return OSAtomicIncrement32((int32_t*)&value);
+	return __atomic_fetch_add(&value, 1, (int)std::memory_order_relaxed);
 }
 
 int asAtomicDec(int &value)
 {
-	return OSAtomicDecrement32((int32_t*)&value);
+	return __atomic_fetch_sub(&value, 1, (int)std::memory_order_relaxed);
 }
 */
 

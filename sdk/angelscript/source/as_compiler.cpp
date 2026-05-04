@@ -82,15 +82,24 @@ BEGIN_AS_NAMESPACE
 //       Instead the compiler should keep track of references in TypeInfo, where it should also state how the reference
 //       is currently stored, i.e. in variable, in register, on stack, etc.
 
-asCCompiler::asCCompiler(asCScriptEngine *engine) : byteCode(engine)
+asCCompiler::asCCompiler(asCScriptEngine *_engine) : byteCode(_engine)
 {
-	builder = 0;
-	script = 0;
-
-	variables = 0;
+	hasCompileErrors           = false;
+	nextLabel                  = 0;
+	numLambdas                 = 0;
+	variables                  = 0;
+	builder                    = 0;
+	engine                     = _engine;
+	script                     = 0;
+	outFunc                    = 0;
+	m_isConstructor            = false;
+	m_isConstructorCalled      = false;
+	m_hasReturned              = false;
+	m_classDecl                = 0;
+	m_globalVar                = 0;
+	isCompilingDefaultArg      = false;
 	isProcessingDeferredParams = false;
-	isCompilingDefaultArg = false;
-	noCodeOutput = 0;
+	noCodeOutput               = 0;
 	allowBehaviourSymbol = false;
 }
 
@@ -2617,6 +2626,9 @@ int asCCompiler::CompileDefaultAndNamedArgs(asCScriptNode *node, asCArray<asCExp
 		for( asUINT n = 0; n < namedArgs->GetLength(); ++n )
 		{
 			asSNamedArgument &named = (*namedArgs)[n];
+			asASSERT( named.ctx);
+			if( named.ctx == 0 )
+				continue;
 			named.ctx->bc.GetVarsUsed(reservedVariables);
 
 			// Find the right spot to put it in
@@ -6496,7 +6508,7 @@ void asCCompiler::PrintMatchingFuncs(asCArray<int> &funcs, asCScriptNode *node, 
 						msg.Format(TXT_TOO_MANY_ARGUMENTS);
 						break;
 					case asEFM_POSITIONAL_MISMATCH:
-						if (func->parameterNames[(*failedReasons)[f].arg].GetLength() == 0)
+						if (func->parameterNames.GetLength() <= (*failedReasons)[f].arg || func->parameterNames[(*failedReasons)[f].arg].GetLength() == 0)
 							msg.Format(TXT_ARGUMENT_TYPE_ERROR_i, (*failedReasons)[f].arg + 1); // use one-indexed parameters, like other compilers (msvc, clang)
 						else
 							msg.Format(TXT_ARGUMENT_TYPE_ERROR_s, func->parameterNames[(*failedReasons)[f].arg].AddressOf());
@@ -10963,8 +10975,11 @@ int asCCompiler::CompileExpressionTerm(asCScriptNode *node, asCExprContext *ctx)
 
 	// Compile the value node
 	asCScriptNode *vnode = node->firstChild;
-	while( vnode->nodeType != snExprValue )
+	while( vnode && vnode->nodeType != snExprValue )
 		vnode = vnode->next;
+	asASSERT(vnode);
+	if( vnode == 0 )
+		return -1;
 
 	asCExprContext v(engine);
 	int r = CompileExpressionValue(vnode, &v); 
@@ -13250,6 +13265,19 @@ int asCCompiler::InstantiateTemplateFunctions(asCArray<int>& funcs, asCScriptNod
 		}
 
 		funcs[i] = engine->GetTemplateFunctionInstance(func, dataTypes);
+		if( funcs[i] < 0 )
+		{
+			asCString msg;
+			asCString subTypes = dataTypes[0].Format(func->nameSpace);
+			for (asUINT s = 1; s < dataTypes.GetLength(); s++)
+			{
+				subTypes += ",";
+				subTypes += dataTypes[s].Format(func->nameSpace);
+			}
+			msg.Format(TXT_INSTANCING_INVLD_TMPL_TYPE_s_s, func->name.AddressOf(), subTypes.AddressOf());
+			Error(msg, startNode);
+			return -1;
+		}
 	}
 
 	return 0;
@@ -17617,25 +17645,17 @@ void asCCompiler::CompileBooleanOperator(asCScriptNode *node, asCExprContext *lc
 		}
 		else
 		{
-#if AS_SIZEOF_BOOL == 1
 			asBYTE v = 0;
 			if( op == ttAnd )
-				v = lctx->type.GetConstantB() && rctx->type.GetConstantB();
+				v = (lctx->type.GetConstantB() && rctx->type.GetConstantB()) ? 1 : 0;
 			else if( op == ttOr )
-				v = lctx->type.GetConstantB() || rctx->type.GetConstantB();
+				v = (lctx->type.GetConstantB() || rctx->type.GetConstantB()) ? 1 : 0;
 
 			// Remember the result
 			ctx->type.isConstant = true;
+#if AS_SIZEOF_BOOL == 1
 			ctx->type.SetConstantB(v);
 #else
-			asDWORD v = 0;
-			if( op == ttAnd )
-				v = lctx->type.GetConstantDW() && rctx->type.GetConstantDW();
-			else if( op == ttOr )
-				v = lctx->type.GetConstantDW() || rctx->type.GetConstantDW();
-
-			// Remember the result
-			ctx->type.isConstant = true;
 			ctx->type.SetConstantDW(v);
 #endif
 		}
@@ -18277,37 +18297,37 @@ void asCCompiler::FilterConst(asCArray<int> &funcs, bool removeConst)
 
 asCExprValue::asCExprValue()
 {
-	isTemporary = false;
-	stackOffset = 0;
-	isConstant = false;
-	isVariable = false;
+	isTemporary      = false;
+	stackOffset      = 0;
+	isConstant       = false;
+	isVariable       = false;
 	isExplicitHandle = false;
-	qwordValue = 0;
-	isLValue = false;
-	isRefToLocal = false;
-	isRefSafe = false;
+	qwordValue       = 0;
+	isLValue         = false;
+	isRefToLocal     = false;
+	isRefSafe        = false;
+	dummy            = 0;
 }
 
 void asCExprValue::Set(const asCDataType &dt)
 {
-	dataType = dt;
-
-	isTemporary = false;
-	stackOffset = 0;
-	isConstant = false;
-	isVariable = false;
+	dataType         = dt;
+	isTemporary      = false;
+	stackOffset      = 0;
+	isConstant       = false;
+	isVariable       = false;
 	isExplicitHandle = false;
-	qwordValue = 0;
-	isLValue = false;
-	isRefToLocal = false;
-	isRefSafe = false;
+	qwordValue       = 0;
+	isLValue         = false;
+	isRefToLocal     = false;
+	isRefSafe        = false;
 }
 
 void asCExprValue::SetVariable(const asCDataType &in_dt, int in_stackOffset, bool in_isTemporary)
 {
 	Set(in_dt);
 
-	this->isVariable = true;
+	this->isVariable  = true;
 	this->isTemporary = in_isTemporary;
 	this->stackOffset = (short)in_stackOffset;
 }
@@ -18442,9 +18462,9 @@ void asCExprValue::SetConstantData(const asCDataType &dt, asQWORD qw)
 	// works on both big endian and little endian CPUs.
 	if (dataType.GetSizeInMemoryBytes() == 1)
 		byteValue = (asBYTE)qw;
-	if (dataType.GetSizeInMemoryBytes() == 2)
+	else if (dataType.GetSizeInMemoryBytes() == 2)
 		wordValue = (asWORD)qw;
-	if (dataType.GetSizeInMemoryBytes() == 4)
+	else if (dataType.GetSizeInMemoryBytes() == 4)
 		dwordValue = (asDWORD)qw;
 	else
 		qwordValue = qw;
@@ -18457,9 +18477,9 @@ asQWORD asCExprValue::GetConstantData()
 	// works on both big endian and little endian CPUs.
 	if (dataType.GetSizeInMemoryBytes() == 1)
 		qw = byteValue;
-	if (dataType.GetSizeInMemoryBytes() == 2)
+	else if (dataType.GetSizeInMemoryBytes() == 2)
 		qw = wordValue;
-	if (dataType.GetSizeInMemoryBytes() == 4)
+	else if (dataType.GetSizeInMemoryBytes() == 4)
 		qw = dwordValue;
 	else
 		qw = qwordValue;

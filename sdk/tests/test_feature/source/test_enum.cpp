@@ -53,6 +53,41 @@ static bool TestEnum()
 	int                r;
 	bool               fail = false;
 
+	// Test enum on big-endian platforms
+	// https://github.com/anjo76/angelscript/pull/62
+	{
+		engine = asCreateScriptEngine();
+		r = engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+		asIScriptModule* mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"enum Small8 : int8 \n"
+			"{ \n"
+			"    Value8 = 42 \n"
+			"} \n"
+			"enum Small16 : int16 \n"
+			"{ \n"
+			"    Value16 = 0x1234 \n"
+			"} \n"
+			"int test_enum_int8() \n"
+			"{ \n"
+			"    return Value8; \n"
+			"} \n"
+			"int test_enum_int16() \n"
+			"{ \n"
+			"    return Value16; \n"
+			"} \n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+		r = ExecuteString(engine, "assert( test_enum_int8() == 42 ); \n"
+						          "assert( test_enum_int16() == 0x1234 ); \n", mod);
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+		engine->ShutDownAndRelease();
+	}
+
 	// Test enum with underlying type
 	{
 		engine = asCreateScriptEngine();

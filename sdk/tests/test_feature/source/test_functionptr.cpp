@@ -74,6 +74,114 @@ void SetCB(asIScriptGeneric *gen)
 	}
 }
 
+struct Callback
+{
+    // Delegates and free functions
+    asIScriptFunction* func = nullptr;
+
+    // Delegates
+    void* callbackObject = nullptr;
+    asITypeInfo* callbackObjectType = nullptr;
+};
+
+namespace zap
+{
+class ZapEvent
+{
+public:
+    static ZapEvent* Create(asITypeInfo* typeInfo);
+    static void CreateGeneric(asIScriptGeneric* gen);
+    static void InvokeGeneric(asIScriptGeneric* gen);
+
+    void AddListener(asIScriptFunction* func);
+    void Invoke(asIScriptGeneric* gen);
+
+	void AddRef() { count++;  }
+	void Release() { if( --count == 0 ) delete this; }
+
+private:
+    ZapEvent() = default;
+    ZapEvent(asITypeInfo* typeInfo);
+	~ZapEvent() 
+	{ 
+		for( Callback &callback : m_callbacks )
+		{
+			if( callback.callbackObject )
+				reinterpret_cast<asIScriptObject *>(callback.callbackObject)->Release();
+		}
+		m_typeInfo->Release();
+	}
+
+    asITypeInfo* m_typeInfo;
+    std::vector<Callback> m_callbacks;
+	int count;
+};
+asIScriptEngine *g_engine = 0;
+}  // namespace zap::zap_as
+
+// event.cpp
+zap::ZapEvent *zap::ZapEvent::Create(asITypeInfo *typeInfo)
+{
+    ZapEvent *a = new ZapEvent(typeInfo);
+    return a;
+}
+
+void zap::ZapEvent::CreateGeneric(asIScriptGeneric *gen)
+{
+    asITypeInfo *ti = *(asITypeInfo **)gen->GetAddressOfArg(0);
+
+    *reinterpret_cast<ZapEvent **>(gen->GetAddressOfReturnLocation()) = ZapEvent::Create(ti);
+}
+
+void zap::ZapEvent::InvokeGeneric(asIScriptGeneric *gen)
+{
+    ZapEvent *self = (ZapEvent *)gen->GetObject();
+    self->Invoke(gen);
+}
+
+void zap::ZapEvent::AddListener(asIScriptFunction *func)
+{
+    Callback callback = {};
+
+    if (func->GetFuncType() == asFUNC_DELEGATE)
+    {
+        callback.func = func->GetDelegateFunction();
+        callback.callbackObject = func->GetDelegateObject();
+        callback.callbackObjectType = func->GetDelegateObjectType();
+
+        g_engine->AddRefScriptObject(callback.callbackObject, callback.callbackObjectType);
+    }
+    else
+    {
+        callback.func = func;
+    }
+
+    m_callbacks.push_back(callback);
+}
+
+void zap::ZapEvent::Invoke(asIScriptGeneric *gen)
+{
+    for (Callback &callback : m_callbacks)
+    {
+        asIScriptContext *context = g_engine->CreateContext();
+        context->Prepare(callback.func);
+        if (callback.callbackObject)
+        {
+            context->SetObject(callback.callbackObject);
+        }
+        context->SetArgAddress(0, gen->GetArgAddress(0));
+        context->Execute();
+		context->Release();
+    }
+}
+
+zap::ZapEvent::ZapEvent(asITypeInfo *typeInfo)
+{
+    m_typeInfo = typeInfo;
+    m_typeInfo->AddRef();
+	count = 1;
+}
+
 bool Test()
 {
 	RET_ON_MAX_PORT
@@ -85,6 +193,62 @@ bool Test()
 	asIScriptModule *mod;
 	asIScriptContext *ctx;
 	CBufferedOutStream bout;
+
+	// Test delegates
+	// https://gamedev.net/forums/topic/719866-eventt-type-question/
+	{
+		using namespace zap;
+		g_engine = engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		RegisterStdString(engine);
+
+		engine->RegisterObjectType("ZapEvent<class T>", 0, asOBJ_REF | asOBJ_TEMPLATE);
+		engine->RegisterObjectBehaviour("ZapEvent<T>", asBEHAVE_ADDREF, "void f()", asMETHOD(ZapEvent, AddRef), asCALL_THISCALL);
+		engine->RegisterObjectBehaviour("ZapEvent<T>", asBEHAVE_RELEASE, "void f()", asMETHOD(ZapEvent, Release), asCALL_THISCALL);
+		engine->RegisterObjectBehaviour("ZapEvent<T>", asBEHAVE_FACTORY, "ZapEvent<T>@ f(int&in)",
+										asFUNCTION(ZapEvent::CreateGeneric), asCALL_GENERIC);
+		engine->RegisterFuncdef("void ZapEvent<T>::CallbackType(const T&in if_handle_then_const arg)");
+		engine->RegisterObjectMethod("ZapEvent<T>", "void AddListener(const CallbackType&in callback)",
+									 asMETHODPR(ZapEvent, AddListener, (asIScriptFunction *), void),
+									 asCALL_THISCALL);
+		engine->RegisterObjectMethod("ZapEvent<T>", "void Invoke(const T&in data)", asFUNCTION(ZapEvent::InvokeGeneric), asCALL_GENERIC);
+
+		mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"ZapEvent<string> event; \n"
+			"void Subscription(const string&in n) \n"
+			"{ \n"
+			"  //	Log::Info(format('Subscription called {}', n)); \n"
+			"} \n"
+			"class Test { \n"
+			"  void Method(const string&in n) \n"
+			"  { \n"
+			"  } \n"
+			"} \n"
+			"void Start() \n"
+			"{ \n"
+			"	event.AddListener(ZapEvent<string>::CallbackType(Subscription)); \n"
+			"   Test t; \n"
+			"   event.AddListener(ZapEvent<string>::CallbackType(t.Method)); \n"
+			"	event.Invoke('event'); \n"
+			"}\n");
+		r = mod->Build();
+		if( r < 0 )
+			TEST_FAILED;
+
+		r = ExecuteString(engine, "Start()", mod);
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
 
 	// Test instantiating delegate from global function (no delegate object is actually created)
 	// https://github.com/anjo76/angelscript/issues/43
@@ -1055,7 +1219,7 @@ void test()
 			TEST_FAILED;
 		if (bout.buffer != "test (5, 1) : Info    : Compiling void main2()\n"
 						   "array (0, 0) : Error   : The subtype 'FD' has no default factory\n"
-						   "test (7, 8) : Error   : Attempting to instantiate invalid template type 'array<FD>'\n"
+						   "test (7, 8) : Error   : Attempting to instantiate invalid template 'array<FD>'\n"
 						   "test (8, 3) : Warning : 'a' is not initialized.\n"
 						   "test (8, 3) : Error   : Illegal operation on 'int'\n")
 		{
@@ -1503,7 +1667,7 @@ void test()
 		r = ExecuteString(engine, "array<float>::MyCallback2 @cb;");
 		if (r >= 0)
 			TEST_FAILED;
-		if (bout.buffer != "ExecuteString (1, 7) : Error   : Attempting to instantiate invalid template type 'array<float>'\n")
+		if (bout.buffer != "ExecuteString (1, 7) : Error   : Attempting to instantiate invalid template 'array<float>'\n")
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;

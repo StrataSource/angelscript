@@ -3454,7 +3454,7 @@ bool Test()
 		if( r >= 0 )
 			TEST_FAILED;
 
-		if( bout.buffer != " (0, 0) : Error   : Attempting to instantiate invalid template type 'tmpl<int>'\n"
+		if( bout.buffer != " (0, 0) : Error   : Attempting to instantiate invalid template 'tmpl<int>'\n"
 			               " (0, 0) : Error   : LoadByteCode failed. The bytecode is invalid. Number of bytes read from stream: 105\n" )
 		{
 			PRINTF("%s", bout.buffer.c_str());

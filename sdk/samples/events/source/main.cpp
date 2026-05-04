@@ -1,7 +1,7 @@
 #include <iostream>  // cout
 #include <assert.h>  // assert()
 #include <string.h>  // strstr()
-#ifdef defined(__linux__) || defined(__unix__)
+#if defined(__linux__) || defined(__unix__)
 	#include <sys/time.h>
 	#include <stdio.h>
 	#include <termios.h>

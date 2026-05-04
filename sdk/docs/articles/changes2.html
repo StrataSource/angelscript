@@ -15,7 +15,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 
 <h1>AngelScript Change Log</h1>
 
-<h2>Version 2.39.0 WIP - 2026/02/26</h2>
+<h2>Version 2.39.0 WIP - 2026/04/27</h2>
 
 <ul>
 <li>Bug fixes
@@ -35,7 +35,6 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Fixed crash that could happen while loading saved bytecode on certain compilers and platforms (Thanks Aleksander Jaronik)
 <li>Variadic functions were incorrectly matched to non-variadic functions when the argument types were the same (Thanks oktonion)
 <li>Fixed compiler error for Android NDK (Thanks luadebug)
-<li>Added AS_NO_EXCEPTIONS for MacOS x64 with Clang as the stack unwind is currently not working
 <li>Fixed problem with calling constructor that has only default arguments (Thanks jit-zs)
 <li>Fixed crash on CompilerGlobalVar when attempting to clean up after a name conflict (Thanks Wing-summer)
 <li>Included error message when declaring virtual set property with &amp; for types that do not support it (Thanks Mikk155)
@@ -57,6 +56,12 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>When compiling bitwise operator the compiler will try to convert object types to math type (Thanks Violet CLM)
 <li>Fixed loading bytecode that uses variadic functions (Thanks Aleksander Jaronik)
 <li>Declaring a type as ?[] will no longer be silently accepted (Thanks Aleksander Jaronik)
+<li>Fixed exception handling with native calling convention and clang on MacOS x86-64 (Thanks pollend)
+<li>Fixed crash in compiler when compiling a call to an imported function with the wrong types (Thanks Miss)
+<li>Fixed macros in angelscript.h to use AS_NAMESPACE_QUALIFIER (Thanks CrackedMatter)
+<li>Fixed issue in asCompareStrings (Thanks huison-cao)
+<li>Fixed assert error on instantiating a template function with invalid subtype (Thanks sebight)
+<li>Fixed issue on big endian platforms with 8 and 16bit constants (Thanks keqing996)
 </ul>
 <li>Library
 <ul>
@@ -92,10 +97,13 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Added option to use the full file path for breakpoints in the debugger (Thanks OriolCS2)
 <li>Debugger is now using the GetLineEntry to move the breakpoint to next valid line
 <li>Improved compatibility for C++98 in add-ons (Thanks oktonion)
+<li>Fixed memory leak upon cleanup of dictionaryValue used standalone as a global var (Thanks li zhuang)
+<li>Fixed string add-on's format with uint8 (Thanks li zhuang)
 </ul>
 <li>Project
 <ul>
 <li>Added port of MSVC assembly to GNU/AT&amp;T assembly for pure clang builds on Windows (Thanks OctalCodes)
+<li>Updated meson project file to add support for riscv64 processors (Thanks Vixea 0)
 </ul>
 </ul>
 

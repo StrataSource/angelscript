@@ -1628,6 +1628,13 @@ int asCScriptEngine::RegisterObjectProperty(const char *obj, const char *declara
 	asCDataType type;
 	asCString name;
 
+	bool isProtected = false;
+	if( strncmp(declaration, "protected ", 10) == 0 )
+	{
+		isProtected = true;
+		declaration += 10;
+	}
+
 	if( (r = bld.VerifyProperty(&dt, declaration, name, type, 0)) < 0 )
 		return ConfigError(r, "RegisterObjectProperty", obj, declaration);
 
@@ -1650,7 +1657,7 @@ int asCScriptEngine::RegisterObjectProperty(const char *obj, const char *declara
 	prop->type                = type;
 	prop->byteOffset          = byteOffset;
 	prop->isPrivate           = false;
-	prop->isProtected         = false;
+	prop->isProtected         = isProtected;
 	prop->compositeOffset     = compositeOffset;
 	prop->isCompositeIndirect = isCompositeIndirect;
 	prop->accessMask          = defaultAccessMask;
@@ -3078,6 +3085,12 @@ int asCScriptEngine::RegisterMethodToObjectType(asCObjectType *objectType, const
 	func->sysFuncIntf = newInterface;
 	func->objectType  = objectType;
 	func->objectType->AddRefInternal();
+
+	if( strncmp(declaration, "protected ", 10) == 0 )
+	{
+		func->SetProtected(true);
+		declaration += 10;
+	}
 
 	asCBuilder bld(this, 0);
 	r = bld.ParseFunctionDeclaration(func->objectType, declaration, func, true, &newInterface->paramAutoHandles, &newInterface->returnAutoHandle, nullptr, nullptr, nullptr, true);

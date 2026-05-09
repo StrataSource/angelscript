@@ -15,7 +15,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 
 <h1>AngelScript Change Log</h1>
 
-<h2>Version 2.39.0 WIP - 2026/04/27</h2>
+<h2>Version 2.39.0 WIP - 2026/05/07</h2>
 
 <ul>
 <li>Bug fixes
@@ -62,6 +62,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Fixed issue in asCompareStrings (Thanks huison-cao)
 <li>Fixed assert error on instantiating a template function with invalid subtype (Thanks sebight)
 <li>Fixed issue on big endian platforms with 8 and 16bit constants (Thanks keqing996)
+<li>Added validation to prevent duplicate definition of constructor or destructor (Thanks AK)
 </ul>
 <li>Library
 <ul>
@@ -72,6 +73,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Improved error message when lambda function can't be converted to target type (Thanks Aaron Baker)
 <li>Made the core library code compatible with C++98 again (Thanks oktonion)
 <li>Improved error message for mismatching shared declaration to inform the other module (Thanks Miss)
+<li>It is now allowed to register object factory to return const handle (Thanks Patrick Jeeves)
 </ul>
 <li>Library interface
 <ul>

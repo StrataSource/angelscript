@@ -413,7 +413,6 @@ asUINT asCObjectType::GetBehaviourCount() const
 	if( beh.listFactory )            count++;
 	if( beh.getWeakRefFlag )         count++;
 	if( beh.instantiateFromScript )  count++;
-	if( beh.retrieveOwningScriptInstance )  count++;
 
 	count += (asUINT)beh.constructors.GetLength();
 
@@ -504,12 +503,6 @@ asIScriptFunction *asCObjectType::GetBehaviourByIndex(asUINT index, asEBehaviour
 	{
 		if( outBehaviour ) *outBehaviour = asBEHAVE_INSTANTIATE_DERIVED_FROM_SCRIPT;
 		return engine->scriptFunctions[beh.instantiateFromScript];
-	}
-
-	if( beh.retrieveOwningScriptInstance && count++ == index )
-	{
-		if( outBehaviour ) *outBehaviour = asBEHAVE_RETRIEVE_OWNING_SCRIPT_INSTANCE;
-		return engine->scriptFunctions[beh.retrieveOwningScriptInstance];
 	}
 
 	if( index - count < beh.constructors.GetLength() )
@@ -737,10 +730,6 @@ void asCObjectType::ReleaseAllFunctions()
 	if ( beh.instantiateFromScript )
 		engine->scriptFunctions[beh.instantiateFromScript]->ReleaseInternal();
 	beh.instantiateFromScript = 0;
-
-	if ( beh.retrieveOwningScriptInstance )
-		engine->scriptFunctions[beh.retrieveOwningScriptInstance]->ReleaseInternal();
-	beh.retrieveOwningScriptInstance = 0;
 }
 
 END_AS_NAMESPACE

@@ -7189,21 +7189,6 @@ bool asCCompiler::CompileRefCast(asCExprContext *ctx, const asCDataType &to, boo
 		// Filter the list by constness to remove const methods if there are matching non-const methods
 		FilterConst(ops, !isConst);
 
-		if (ops.GetLength() == 0)
-		{
-			// use fancy cast through behaviour that doesn't need to respect constness
-			auto t = ot;
-			while (t)
-			{
-				if (t->beh.retrieveOwningScriptInstance)
-				{
-					ops.PushLast(t->beh.retrieveOwningScriptInstance);
-					break;
-				}
-				t = t->derivedFrom;
-			}
-		}
-
 		// If there is multiple matches, then pick the most appropriate one
 		if (ops.GetLength() > 1)
 		{

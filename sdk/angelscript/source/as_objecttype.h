@@ -69,7 +69,6 @@ struct asSTypeBehaviour
 		templateCallback = 0;
 		getWeakRefFlag = 0;
 		instantiateFromScript = 0;
-		retrieveOwningScriptInstance = 0;
 	}
 
 	int factory;
@@ -94,7 +93,6 @@ struct asSTypeBehaviour
 	int getWeakRefFlag;
 
 	int instantiateFromScript;
-	int retrieveOwningScriptInstance;
 
 	asCArray<int> factories;
 	asCArray<int> constructors;

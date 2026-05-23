@@ -2705,28 +2705,6 @@ int asCScriptEngine::RegisterBehaviourToObjectType(asCObjectType *objectType, as
 
 		func.id = beh->instantiateFromScript = AddBehaviourFunction(func, internal);
 	}
-	else if ( behaviour == asBEHAVE_RETRIEVE_OWNING_SCRIPT_INSTANCE )
-	{
-		// This behaviour is only allowed for reference types
-		if( !(objectType->flags & asOBJ_REF) )
-		{
-			WriteMessage("", 0, 0, asMSGTYPE_ERROR, TXT_ILLEGAL_BEHAVIOUR_FOR_TYPE);
-			return ConfigError(asILLEGAL_BEHAVIOUR_FOR_TYPE, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
-		}
-
-		// Verify that the return type is void
-		if( func.returnType.GetTokenType() != ttVoid )
-			return ConfigError(asINVALID_DECLARATION, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
-
-		// Verify that there is single ?&out parameter
-		if( func.parameterTypes.GetLength() != 1 || !func.parameterTypes[0].IsAnyType() || func.inOutFlags[0] != asTM_OUTREF )
-			return ConfigError(asINVALID_DECLARATION, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
-
-		if( beh->retrieveOwningScriptInstance )
-			return ConfigError(asALREADY_REGISTERED, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
-
-		func.id = beh->retrieveOwningScriptInstance = AddBehaviourFunction(func, internal);
-	}
 	else
 	{
 		asASSERT(false);

@@ -2971,7 +2971,7 @@ void asCReader::TranslateFunction(asCScriptFunction *func)
 			int *tid = (int*)&bc[n+1];
 			*tid = FindTypeId(*tid);
 		}
-		else if( c == asBC_ADDSi ||
+		else if( c == asBC_ADDSi || c == asBC_ADDSiN ||
 			     c == asBC_LoadThisR )
 		{
 			// Translate the index to the type id
@@ -5276,6 +5276,7 @@ void asCWriter::WriteByteCode(asCScriptFunction *func)
 			*(int*)(tmpBC+1) = FindTypeIdIdx(*(int*)(tmpBC+1));
 		}
 		else if( c == asBC_ADDSi ||      // W_DW_ARG
+				 c == asBC_ADDSiN ||     // W_DW_ARG
 			     c == asBC_LoadThisR )   // W_DW_ARG
 		{
 			// Translate property offsets into indices
@@ -5966,7 +5967,7 @@ int asCWriter::FindObjectPropIndex(short offset, int typeId, asDWORD *bc)
 			if (objProp->isCompositeIndirect)
 			{
 				// The next instruction would be a asBC_RDSPtr
-				if ((*(asBYTE*)bcTemp) != asBC_RDSPtr)
+				if ((*(asBYTE*)bcTemp) != asBC_RDSPtr && (*(asBYTE*)bcTemp) != asBC_RDSPtrN)
 				{
 					objProp = 0;
 					continue;
@@ -5974,7 +5975,7 @@ int asCWriter::FindObjectPropIndex(short offset, int typeId, asDWORD *bc)
 				bcTemp += asBCTypeSize[asBCInfo[*(asBYTE*)bcTemp].type];
 			}
 			// The next instruction would be asBC_ADDSi
-			if ((*(asBYTE*)bcTemp) != asBC_ADDSi)
+			if ((*(asBYTE*)bcTemp) != asBC_ADDSi && (*(asBYTE*)bcTemp) != asBC_ADDSiN)
 			{
 				objProp = 0;
 				continue;

@@ -8278,16 +8278,16 @@ asUINT asCCompiler::ImplicitConvObjectRef(asCExprContext *ctx, const asCDataType
 					// Adjust the pointer for composite member
 					// This must always be done even if the offset is 0 because the asCWriter needs the meta data in ADDSi to identify the composite property
 					if( prop->compositeOffset || prop->isCompositeIndirect )
-						ctx->bc.InstrSHORT_DW(asBC_ADDSi, (short)prop->compositeOffset, engine->GetTypeIdFromDataType(asCDataType::CreateType(to.GetTypeInfo(), false)));
+						ctx->bc.InstrSHORT_DW(asBC_ADDSiN, (short)prop->compositeOffset, engine->GetTypeIdFromDataType(asCDataType::CreateType(to.GetTypeInfo(), false)));
 					if (prop->isCompositeIndirect)
-						ctx->bc.Instr(asBC_RDSPtr);
+						ctx->bc.Instr(asBC_RDSPtrN);
 
 					// Put the offset on the stack
 					// This must always be done even if the offset is 0 so the type info is stored
-					ctx->bc.InstrSHORT_DW(asBC_ADDSi, (short)prop->byteOffset, engine->GetTypeIdFromDataType(asCDataType::CreateType(to.GetTypeInfo(), false)));
+					ctx->bc.InstrSHORT_DW(asBC_ADDSiN, (short)prop->byteOffset, engine->GetTypeIdFromDataType(asCDataType::CreateType(to.GetTypeInfo(), false)));
 
-					if( prop->type.IsReference() )
-						ctx->bc.Instr(asBC_RDSPtr);
+					ctx->bc.Instr(asBC_RDSPtrN);
+					ctx->type.dataType.MakeReference(false);
 				}
 			}
 			ctx->type.dataType.SetTypeInfo(to.GetTypeInfo());

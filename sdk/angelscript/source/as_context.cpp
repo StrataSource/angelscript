@@ -2306,9 +2306,9 @@ static const void *const dispatch_table[256] = {
 &&INSTRUCTION(asBC_JLowNZ),		&&INSTRUCTION(asBC_AllocMem),	&&INSTRUCTION(asBC_SetListSize),&&INSTRUCTION(asBC_PshListElmnt),
 &&INSTRUCTION(asBC_SetListType),&&INSTRUCTION(asBC_POWi),		&&INSTRUCTION(asBC_POWu),		&&INSTRUCTION(asBC_POWf),
 &&INSTRUCTION(asBC_POWd),		&&INSTRUCTION(asBC_POWdi),		&&INSTRUCTION(asBC_POWi64),		&&INSTRUCTION(asBC_POWu64),
-&&INSTRUCTION(asBC_Thiscall1),
+&&INSTRUCTION(asBC_Thiscall1),	&&INSTRUCTION(asBC_ADDSiN),		&&INSTRUCTION(asBC_RDSPtrN),
 
-								&&INSTRUCTION(FAULT),			&&INSTRUCTION(FAULT),			&&INSTRUCTION(FAULT),
+																								&&INSTRUCTION(FAULT),
 &&INSTRUCTION(FAULT),			&&INSTRUCTION(FAULT),			&&INSTRUCTION(FAULT),			&&INSTRUCTION(FAULT),
 &&INSTRUCTION(FAULT),			&&INSTRUCTION(FAULT),			&&INSTRUCTION(FAULT),			&&INSTRUCTION(FAULT),
 &&INSTRUCTION(FAULT),			&&INSTRUCTION(FAULT),			&&INSTRUCTION(FAULT),			&&INSTRUCTION(FAULT),
@@ -2905,6 +2905,19 @@ static const void *const dispatch_table[256] = {
 		l_bc++;
 		NEXT_INSTRUCTION();
 
+	INSTRUCTION(asBC_RDSPtrN):
+		{
+			// The pointer can be null
+			asPWORD a = *(asPWORD*)l_sp;
+			if( a != 0 )
+			{
+				// Pop an address from the stack, read a pointer from that address and push it on the stack
+				*(asPWORD*)l_sp = *(asPWORD*)a;
+			}
+		}
+		l_bc++;
+		NEXT_INSTRUCTION();
+
 	//----------------------------
 	// Comparisons
 	INSTRUCTION(asBC_CMPd):
@@ -3442,6 +3455,19 @@ static const void *const dispatch_table[256] = {
 			}
 			// Add an offset to the pointer
 			*(asPWORD*)l_sp = a + asBC_SWORDARG0(l_bc);
+		}
+		l_bc += 2;
+		NEXT_INSTRUCTION();
+
+	INSTRUCTION(asBC_ADDSiN):
+		{
+			// The pointer can be null
+			asPWORD a = *(asPWORD*)l_sp;
+			if( a != 0 )
+			{
+				// Add an offset to the pointer
+				*(asPWORD*)l_sp = a + asBC_SWORDARG0(l_bc);
+			}
 		}
 		l_bc += 2;
 		NEXT_INSTRUCTION();
@@ -4962,8 +4988,6 @@ static const void *const dispatch_table[256] = {
 	// Don't let the optimizer optimize for size,
 	// since it requires extra conditions and jumps
 #if AS_USE_COMPUTED_GOTOS == 0
-	INSTRUCTION(201): l_bc = (asDWORD*)201; goto case_FAULT;
-	INSTRUCTION(202): l_bc = (asDWORD*)202; goto case_FAULT;
 	INSTRUCTION(203): l_bc = (asDWORD*)203; goto case_FAULT;
 	INSTRUCTION(204): l_bc = (asDWORD*)204; goto case_FAULT;
 	INSTRUCTION(205): l_bc = (asDWORD*)205; goto case_FAULT;

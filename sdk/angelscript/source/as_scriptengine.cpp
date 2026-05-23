@@ -3069,8 +3069,6 @@ int asCScriptEngine::RegisterMethodToObjectType(asCObjectType *objectType, const
 		}
 	}
 
-	isPrepared = false; // TODO: Only set this after the validations have been completed, to avoid unnecessary Prepare in case no change was made
-
 	// Put the system function in the list of system functions
 	asSSystemFunctionInterface *newInterface = asNEW(asSSystemFunctionInterface)(internal);
 	if( newInterface == 0 )
@@ -3178,6 +3176,8 @@ int asCScriptEngine::RegisterMethodToObjectType(asCObjectType *objectType, const
 		}
 	}
 
+	isPrepared = false; // Only set this after the validations have been completed, to avoid unnecessary Prepare in case no change was made
+
 	func->id = GetNextScriptFunctionId();
 	if( foundId != -1 )
 		func->objectType->methods[foundId] = func->id;
@@ -3225,8 +3225,6 @@ int asCScriptEngine::RegisterGlobalFunction(const char *declaration, const asSFu
 	int r = DetectCallingConvention(false, funcPointer, callConv, auxiliary, &internal);
 	if( r < 0 )
 		return ConfigError(r, "RegisterGlobalFunction", declaration, 0);
-
-	isPrepared = false; // TODO: Only set this after the validations have been completed, to avoid unnecessary Prepare in case no change was made
 
 	// Put the system function in the list of system functions
 	asSSystemFunctionInterface *newInterface = asNEW(asSSystemFunctionInterface)(internal);
@@ -3306,6 +3304,8 @@ int asCScriptEngine::RegisterGlobalFunction(const char *declaration, const asSFu
 			return ConfigError(asALREADY_REGISTERED, "RegisterGlobalFunction", declaration, 0);
 		}
 	}
+
+	isPrepared = false; // Only set this after the validations have been completed, to avoid unnecessary Prepare in case no change was made
 
 	func->id = GetNextScriptFunctionId();
 	AddScriptFunction(func);

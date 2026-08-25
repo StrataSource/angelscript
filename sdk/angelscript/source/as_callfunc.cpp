@@ -821,8 +821,10 @@ int CallSystemFunction(int id, asCContext *context)
 
 			if (sysFunc->returnAutoHandle && context->m_regs.objectRegister)
 			{
-				asASSERT(!(descr->returnType.GetTypeInfo()->flags & asOBJ_NOCOUNT));
-				engine->CallObjectMethod(context->m_regs.objectRegister, CastToObjectType(descr->returnType.GetTypeInfo())->beh.addref);
+				asCObjectType *ot = CastToObjectType(descr->returnType.GetTypeInfo());
+				asASSERT((ot->flags & asOBJ_NOCOUNT) || ot->beh.addref);
+				if (ot->beh.addref)
+					engine->CallObjectMethod(context->m_regs.objectRegister, ot->beh.addref);
 			}
 
 			// Clean-up the returned object if there is an exception
@@ -962,7 +964,9 @@ int CallSystemFunction(int id, asCContext *context)
 			{
 				if( *addr != 0 )
 				{
-					engine->CallObjectMethod(*addr, clean->ot->beh.release);
+					asASSERT((clean->ot->flags & asOBJ_NOCOUNT) || clean->ot->beh.release);
+					if( clean->ot->beh.release )
+						engine->CallObjectMethod(*addr, clean->ot->beh.release);
 					*addr = 0;
 				}
 			}

@@ -6015,7 +6015,9 @@ int asCContext::CallGeneric(asCScriptFunction *descr)
 			{
 				if( *addr != 0 )
 				{
-					m_engine->CallObjectMethod(*addr, clean->ot->beh.release);
+					asASSERT((clean->ot->flags & asOBJ_NOCOUNT) || clean->ot->beh.release);
+					if( clean->ot->beh.release )
+						m_engine->CallObjectMethod(*addr, clean->ot->beh.release);
 					*addr = 0;
 				}
 			}

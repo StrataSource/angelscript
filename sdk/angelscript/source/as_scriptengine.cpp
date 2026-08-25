@@ -2308,10 +2308,11 @@ int asCScriptEngine::RegisterBehaviourToObjectType(asCObjectType *objectType, as
 				return ConfigError(asILLEGAL_BEHAVIOUR_FOR_TYPE, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
 			}
 
-			// The templates take a hidden parameter with the object type
+			// The templates take a hidden parameter with the object type (it is represented as a reference to a primitive)
 			if( (objectType->flags & asOBJ_TEMPLATE) &&
 				(func.parameterTypes.GetLength() == 0 ||
-				 !func.parameterTypes[0].IsReference()) )
+				 !func.parameterTypes[0].IsReference() ||
+				 !func.parameterTypes[0].IsPrimitive()) )
 			{
 				WriteMessage("", 0, 0, asMSGTYPE_ERROR, TXT_FIRST_PARAM_MUST_BE_REF_FOR_TEMPLATE_FACTORY);
 				return ConfigError(asINVALID_DECLARATION, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
@@ -2325,18 +2326,26 @@ int asCScriptEngine::RegisterBehaviourToObjectType(asCObjectType *objectType, as
 			if( func.parameterTypes.GetLength() == 0 ||
 				(func.parameterTypes.GetLength() == 1 && (objectType->flags & asOBJ_TEMPLATE)) )
 			{
+				if( beh->construct != 0 )
+					return ConfigError(asALREADY_REGISTERED, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
 				beh->construct = func.id;
 			}
-			else if( func.parameterTypes.GetLength() == 1 )
+			else if( func.parameterTypes.GetLength() == 1 ||
+					 (func.parameterTypes.GetLength() == 2 && (objectType->flags & asOBJ_TEMPLATE)) )
 			{
 				// Is this the copy constructor?
-				asCDataType paramType = func.parameterTypes[0];
+				asCDataType paramType = func.parameterTypes[objectType->flags & asOBJ_TEMPLATE ? 1 : 0];
 
 				// If the parameter is object, and const reference for input or inout,
 				// and same type as this class, then this is a copy constructor.
 				if( paramType.IsObject() && paramType.IsReference() && paramType.IsReadOnly() &&
-					(func.inOutFlags[0] & asTM_INREF) && paramType.GetTypeInfo() == objectType )
+				   (func.inOutFlags[0] & asTM_INREF) && paramType.GetTypeInfo() == objectType )
+				{
+					if( beh->copyconstruct != 0 )
+						return ConfigError(asALREADY_REGISTERED, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
+
 					beh->copyconstruct = func.id;
+				}
 			}
 		}
 	}
@@ -5147,8 +5156,52 @@ bool asCScriptEngine::CallGlobalFunctionRetBool(void *param1, void *param2, asSS
 		func_t f = (func_t)(i->func);
 		return f(param1, param2);
 	}
+	else if( i->callConv == ICC_THISCALL || i->callConv == ICC_VIRTUAL_THISCALL )
+	{
+		// This is asCALL_THISCALL_ASGLOBAL
+		asASSERT(i->auxiliary);
+
+#if defined(__GNUC__) || defined(AS_PSVITA)
+		// For virtual thiscalls we must call the method as a true class method so that the compiler will lookup the function address in the vftable
+		union
+		{
+			asSIMPLEMETHOD_t mthd;
+			struct
+			{
+				asFUNCTION_t func;
+				asPWORD baseOffset;
+			} f;
+		} p;
+		p.f.func = (asFUNCTION_t)(i->func);
+		p.f.baseOffset = asPWORD(i->baseOffset);
+
+		void *obj = (void*) ((char*) i->auxiliary +  i->compositeOffset);
+		if(i->isCompositeIndirect)
+			obj = *((void**)obj);
+
+		bool (asCSimpleDummy::*f)(void *, void *) = (bool (asCSimpleDummy::*)(void *, void *))(p.mthd);
+		return (((asCSimpleDummy*)obj)->*f)(param1, param2);
+#else
+		union
+		{
+			asSIMPLEMETHOD_t mthd;
+			asFUNCTION_t func;
+		} p;
+		p.func = (asFUNCTION_t)(i->func);
+		bool (asCSimpleDummy::*f)(void *, void *) = (bool (asCSimpleDummy::*)(void *, void *))p.mthd;
+
+		void *obj = (void*) ((char*) i->auxiliary +  i->compositeOffset);
+		if(i->isCompositeIndirect)
+			obj = *((void**)obj);
+
+		obj = (void*)(asPWORD(obj) + i->baseOffset);
+		return (((asCSimpleDummy*)obj)->*f)(param1, param2);
+#endif
+	}
 	else
 	{
+		asASSERT(i->callConv == ICC_GENERIC_FUNC);
+
 		// TODO: When simulating a 64bit environment by defining AS_64BIT_PTR on a 32bit platform this code
 		//       fails, because the stack given to asCGeneric is not prepared with two 64bit arguments.
 

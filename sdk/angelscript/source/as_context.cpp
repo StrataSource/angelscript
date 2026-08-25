@@ -2254,6 +2254,11 @@ void asCContext::CallInterfaceMethod(asCScriptFunction *func, bool noVirtLookup)
 
 void asCContext::ExecuteNext()
 {
+#if defined(_MSC_VER) && defined(__clang__)
+// Disable the warning about use of HUGE_VAL
+#pragma GCC diagnostic ignored "-Wnan-infinity-disabled"
+#endif
+
 #if AS_USE_COMPUTED_GOTOS
 static const void *const dispatch_table[256] = {
 &&INSTRUCTION(asBC_PopPtr),		&&INSTRUCTION(asBC_PshGPtr),	&&INSTRUCTION(asBC_PshC4),		&&INSTRUCTION(asBC_PshV4),

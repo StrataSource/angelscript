@@ -15,7 +15,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 
 <h1>AngelScript Change Log</h1>
 
-<h2>Version 2.39.0 WIP - 2026/06/12</h2>
+<h2>Version 2.39.0 WIP - 2026/08/25</h2>
 
 <ul>
 <li>Bug fixes
@@ -69,6 +69,12 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Fixed thiscall with composite offset on systems with AS_NO_THISCALL_FUNCTOR_METHOD (Thanks fabienr)
 <li>Fixed assert failure when compiling implicit conversion of type using constructor with variadic argument (Thanks Patrick Jeeves)
 <li>Fixed resolution of nested namespace with same name as global namespace (Thanks Anton Brandstoetter)
+<li>Fixed invalid compilation error when declaring class with single constructor taking int by reference (Thanks Fort-TM)
+<li>Fixed array out of bounds access in asIScriptGeneric::GetAddressOfArg for variadic functions (Thanks HenryAWE)
+<li>Fixed assert failure in specfic scenario of saving unoptimized bytecode (Thanks li zhuang)
+<li>Fixed const method calling non-const method (Thanks AK)
+<li>Fixed namespace resolution issue where class and namespace have the same name (Thanks Miss)
+<li>Fixed assert failure after catching script exception raised from application registered constructor (Thanks gmp3 labs)
 </ul>
 <li>Library
 <ul>
@@ -81,6 +87,9 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Improved error message for mismatching shared declaration to inform the other module (Thanks Miss)
 <li>It is now allowed to register object factory to return const handle (Thanks Patrick Jeeves)
 <li>Implemented support for asCALL_THISCALL_OBJFIRST/LAST with addref and release behaviours (Thanks HenryAWE)
+<li>Enabled use of computed gotos when compiling with clang-cl for Windows (Thanks Aleksander Jaronik)
+<li>Improved validation of registering template constructors to better catch user errors (Thanks Patrick Jeeves)
+<li>Implemented support for asCALL_THISCALL_ASGLOBAL for the template callback behaviour (Thanks HenryAWE)
 </ul>
 <li>Library interface
 <ul>
